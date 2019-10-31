@@ -1,0 +1,17 @@
+artellapipe.libs.artella package
+================================
+
+Subpackages
+-----------
+
+.. toctree::
+
+   artellapipe.libs.artella.core
+
+Module contents
+---------------
+
+.. automodule:: artellapipe.libs.artella
+   :members:
+   :undoc-members:
+   :show-inheritance:
