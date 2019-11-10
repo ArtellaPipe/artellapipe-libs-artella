@@ -18,6 +18,8 @@ import collections
 
 from tpPyUtils import path as path_utils
 
+import artellapipe
+
 LOGGER = logging.getLogger()
 
 
@@ -144,7 +146,7 @@ class ArtellaAssetMetaData(object):
         Internal function that caches the published data of the asset if that info is not already cached
         """
 
-        from artellapipe.core import artellalib
+        from artellapipe.libs.artella.core import artellalib
 
         self._published_folders = dict()
         self._published_folders_all = dict()
@@ -189,6 +191,9 @@ class ArtellaAssetMetaData(object):
 
 class ArtellaReferencesMetaData(object):
     def __init__(self, ref_name, ref_path, ref_dict):
+
+        self._dict = ref_dict
+
         self._name = ref_name.split('/')[-1]
         self._path = path_utils.clean_path(os.path.join(ref_path, self._name))
 
@@ -353,8 +358,10 @@ class ArtellaAppMetaData(object):
         :return:
         """
 
-        LOGGER.debug('Updating Artella Local Root to {0}'.format(self._local_root))
-        os.environ[defines.ARTELLA_ROOT_PREFIX] = self._local_root
+        from artellapipe.libs import artella as artella_lib
+
+        artella_root_prefix = artella_lib.config.get('app', 'root_prefix')
+        os.environ[artella_root_prefix] = self._local_root
 
 
 class ArtellaFileVerionMetaData(object):
@@ -434,6 +441,8 @@ class ArtellaFileVerionMetaData(object):
 
 class ArtellaFileMetaData(object):
     def __init__(self, file_dict):
+
+        self._dict = file_dict
 
         self._name = None
         self._relative_path = None

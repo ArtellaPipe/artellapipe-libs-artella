@@ -30,6 +30,8 @@ import tpDccLib as tp
 from tpPyUtils import osplatform, path as path_utils
 from tpQtLib.core import qtutils
 
+import artellapipe
+from artellapipe.libs import artella as artella_lib
 from artellapipe.libs.artella.core import artellaclasses
 
 LOGGER = logging.getLogger()
@@ -53,7 +55,6 @@ class AbstractArtella(object):
                 return relative_path
         return ''
 
-
 def update_artella_paths():
     """
     Updates system path to add artella paths if they are not already added
@@ -68,7 +69,6 @@ def update_artella_paths():
             if subdir not in sys.path:
                 LOGGER.debug('Adding Artella path: {0}'.format(subdir))
                 sys.path.append(subdir)
-
 
 def update_local_artella_root():
     """
@@ -106,8 +106,9 @@ def get_artella_data_folder():
     else:
         return None
 
+    next_version = artella_lib.config.get('app', 'next_version_filename')
     artella_app_version = None
-    version_file = os.path.join(artella_folder, defines.ARTELLA_NEXT_VERSION_FILE_NAME)
+    version_file = os.path.join(artella_folder, next_version)
     if os.path.isfile(version_file):
         with open(version_file) as f:
             artella_app_version = f.readline()
@@ -167,7 +168,9 @@ def get_artella_app():
     """
 
     artella_folder = os.path.dirname(get_artella_data_folder())
-    return os.path.join(artella_folder, defines.ARTELLA_APP_NAME)
+    artella_app_name = artella_lib.config.get('app', 'name')
+
+    return os.path.join(artella_folder, artella_app_name)
 
 
 def get_artella_program_folder():
@@ -227,6 +230,8 @@ def close_all_artella_app_processes():
     :return:
     """
 
+    artella_app_name = artella_lib.config.get('app', 'name')
+
     psutil_available = False
     try:
         import psutil
@@ -237,7 +242,7 @@ def close_all_artella_app_processes():
     if psutil_available:
         try:
             for proc in psutil.process_iter():
-                if proc.name() == defines.ARTELLA_APP_NAME + '.exe':
+                if proc.name() == '{}.exe'.format(artella_app_name):
                     LOGGER.debug('Killing Artella App process: {}'.format(proc.name()))
                     proc.kill()
             return True
@@ -263,7 +268,7 @@ def connect_artella_app_to_spigot(cli=None, app_identifier=None):
             except Exception:
                 LOGGER.warning('Unknown command!')
         else:
-            return artella.handleMessage(json_msg)
+            return artella_lib.artella.handleMessage(json_msg)
 
     if cli is None:
         cli = get_spigot_client()
@@ -273,7 +278,7 @@ def connect_artella_app_to_spigot(cli=None, app_identifier=None):
         artella_app_identifier = app_identifier
 
     if tp.is_maya():
-        pass_msg_fn = artella.passMsgToMainThread
+        pass_msg_fn = artella_lib.artella.passMsgToMainThread
     elif tp.is_houdini():
         def pass_msg_to_main_thread(json_msg):
             from tpHoudiniLib.core import helpers
@@ -297,11 +302,12 @@ def load_artella_maya_plugin():
     """
 
     if tp.is_maya():
-        LOGGER.debug('Loading Artella Maya Plugin ...')
+        artella_plugin_name = artella_lib.config.get('app', 'plugin')
+        LOGGER.debug('Loading Artella Maya Plugin: {} ...'.format(artella_plugin_name))
         artella_maya_plugin_folder = get_artella_dcc_plugin(dcc='maya')
-        artella_maya_plugin_file = os.path.join(artella_maya_plugin_folder, defines.ARTELLA_MAYA_PLUGIN_NAME)
+        artella_maya_plugin_file = os.path.join(artella_maya_plugin_folder, artella_plugin_name)
         if os.path.isfile(artella_maya_plugin_file):
-            if not tp.Dcc.is_plugin_loaded(defines.ARTELLA_MAYA_PLUGIN_NAME):
+            if not tp.Dcc.is_plugin_loaded(artella_plugin_name):
                 tp.Dcc.load_plugin(artella_maya_plugin_file)
                 return True
 
@@ -348,10 +354,11 @@ def fix_path_by_project(project, path, fullpath=False):
     :return: str
     """
 
+    artella_root_prefix = artella_lib.config.get('app', 'root_prefix')
     project_path = project.get_path()
-    new_path = path.replace(project_path, '${}\\'.format(defines.ARTELLA_ROOT_PREFIX))
+    new_path = path.replace(project_path, '${}\\'.format(artella_root_prefix))
     if fullpath:
-        new_path = path.replace(project_path, '${}'.format(defines.ARTELLA_ROOT_PREFIX) + '/' + project.full_id)
+        new_path = path.replace(project_path, '${}'.format(artella_root_prefix) + '/' + project.full_id)
     return new_path
 
 
@@ -444,7 +451,7 @@ def get_cms_uri_current_file():
     current_file = tp.Dcc.scene_name()
     LOGGER.debug('Getting CMS Uri of file {0}'.format(current_file))
 
-    cms_uri = artella.getCmsUri(current_file)
+    cms_uri = artella_lib.artella.getCmsUri(current_file)
     if not cms_uri:
         LOGGER.error('Unable to get CMS uri from path: {0}'.format(current_file))
         return False
@@ -466,7 +473,7 @@ def get_cms_uri(path):
         return path
 
     path = os.path.normpath(path)
-    cms_uri = artella.getCmsUri(path)
+    cms_uri = artella_lib.artella.getCmsUri(path)
     if not cms_uri:
         LOGGER.error('Unable to get CMS uri from path: {0}'.format(path))
         return False
@@ -589,16 +596,17 @@ def get_asset_version(name):
     """
 
     string_version = name[-4:]
-    int_version = map(int, re.findall('/d+', string_version))[0]
+    int_version = map(int, re.findall(r'\d+', string_version))[0]
     int_version_formatted = '{0:03}'.format(int_version)
 
     return string_version, int_version, int_version_formatted
 
 
-def get_asset_history(file_path, as_json=False):
+def get_file_history(file_path, as_json=False):
     """
     Returns the history info of the given file, if exists
     :param file_path: str
+    :param as_json: bool
     """
 
     uri = get_cms_uri(file_path)
@@ -779,12 +787,41 @@ def is_published(file_path):
     return 'release_name' in meta
 
 
+def is_updated(file_path):
+    """
+    Returns whether or not given file path is updated to the last version
+    :param file_path: str
+    :return: bool
+    """
+
+    rsp = get_status(file_path=file_path)
+    if rsp:
+        if isinstance(rsp, artellaclasses.ArtellaDirectoryMetaData):
+            is_updated = False
+            if rsp.header.status != 'OK':
+                LOGGER.info('Status is not OK: {}'.format(rsp))
+                return False
+            for name, ref in rsp.references.items():
+                if ref.view_version < ref.maximum_version:
+                    return False
+                else:
+                    is_updated = True
+            return is_updated
+        elif isinstance(rsp, artellaclasses.ArtellaReferencesMetaData):
+            return rsp.view_version < rsp.maximum_version
+        else:
+            # We return None in files that are only in local (not in server)
+            return None
+
+    return False
+
+
 def is_locked(file_path):
     """
     Returns whether an absolute file path refers to a locked asset in edit mode, and if the file is locked
     by the current storage workspace
     :param file_path: str, absolute path to a file
-    :return: bool, bool
+    :return: (bool, bool), Whether file is locked or not, whether the file is locked by another user or not
     """
 
     rsp = get_status(file_path=file_path)
@@ -870,8 +907,8 @@ def lock_file(file_path=None, force=False):
             msg = '{} needs to be in Edit mode to save your file. Would like to turn edit mode on now?'.format(
                 os.path.basename(file_path))
             LOGGER.info(msg)
-            if artellapipe.core.current_project:
-                artellapipe.core.current_project.message(msg)
+            if artellapipe.project:
+                artellapipe.project.message(msg)
             result = tp.Dcc.confirm_dialog(
                 title='Artella Pipeline - Lock File',
                 message=msg, button=['Yes', 'No'], cancel_button='No', dismiss_string='No')
@@ -880,7 +917,7 @@ def lock_file(file_path=None, force=False):
 
     spigot = get_spigot_client()
     payload = dict()
-    payload['cms_uri'] = artella.getCmsUri(file_path)
+    payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
     payload = json.dumps(payload)
 
     rsp = spigot.execute(command_action='do', command_name='checkout', payload=payload)
@@ -908,7 +945,7 @@ def upload_file(file_path, comment):
 
     spigot = get_spigot_client()
     payload = dict()
-    cms_uri = artella.getCmsUri(file_path)
+    cms_uri = artella_lib.artella.getCmsUri(file_path)
     if not cms_uri.startswith('/'):
         cms_uri = '/' + cms_uri
     payload['cms_uri'] = cms_uri
@@ -975,7 +1012,7 @@ def unlock_file(file_path):
 
     spigot = get_spigot_client()
     payload = dict()
-    payload['cms_uri'] = artella.getCmsUri(file_path)
+    payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
     payload = json.dumps(payload)
 
     if not can_unlock(file_path=file_path):
@@ -1016,8 +1053,8 @@ def upload_new_asset_version(file_path=None, comment='Published new version with
 
     msg = 'Making new version for {}'.format(file_path)
     LOGGER.info(msg)
-    if artellapipe.core.current_project:
-        artellapipe.core.current_project.message(msg)
+    if artellapipe.project:
+        artellapipe.project.message(msg)
     if file_path is not None and file_path != '':
         valid_lock = lock_file(file_path=file_path)
         if not valid_lock:
@@ -1049,7 +1086,7 @@ def upload_new_asset_version(file_path=None, comment='Published new version with
 
         spigot = get_spigot_client()
         payload = dict()
-        cms_uri = artella.getCmsUri(file_path)
+        cms_uri = artella_lib.artella.getCmsUri(file_path)
         if not cms_uri.startswith('/'):
             cms_uri = '/' + cms_uri
         payload['cms_uri'] = cms_uri
@@ -1089,7 +1126,7 @@ def publish_asset(asset_path, comment, selected_versions, version_name):
 
     spigot = get_spigot_client()
     payload = dict()
-    payload['cms_uri'] = '/' + artella.getCmsUri(asset_path) + '/' + version_name
+    payload['cms_uri'] = '/' + artella_lib.artella.getCmsUri(asset_path) + '/' + version_name
     payload['comment'] = comment
     payload['selectedVersions'] = selected_versions
     payload = json.dumps(payload)
@@ -1102,7 +1139,7 @@ def publish_asset(asset_path, comment, selected_versions, version_name):
     return rsp
 
 
-def get_file_current_working_version(file_path):
+def get_file_version(file_path):
     """
     Returns current working version of the given file in Artella server
     :param file_path: str
@@ -1112,7 +1149,7 @@ def get_file_current_working_version(file_path):
     if not file_path or not os.path.isfile(file_path):
         return -1
 
-    history = get_asset_history(file_path)
+    history = get_file_history(file_path)
     file_versions = history.versions
     if not file_versions:
         current_version = 0
@@ -1146,12 +1183,13 @@ def get_user_avatar(user_id):
     :return:
     """
 
+    artella_cms_url = artella_lib.config.get('server', 'cms_url')
     manager = HTTPPasswordMgrWithDefaultRealm()
-    manager.add_password(None, defines.ARTELLA_CMS_URL, 'default', 'default')
+    manager.add_password(None, artella_cms_url, 'default', 'default')
     auth = HTTPBasicAuthHandler(manager)
     opener = build_opener(auth)
     install_opener(opener)
-    response = urlopen('{0}/profile/{1}/avatarfull.img'.format(defines.ARTELLA_CMS_URL, user_id))
+    response = urlopen('{0}/profile/{1}/avatarfull.img'.format(artella_cms_url, user_id))
 
     return response
 
@@ -1172,7 +1210,7 @@ def get_dependencies(file_path):
     if file_path is not None and file_path != '':
         spigot = get_spigot_client()
         payload = dict()
-        payload['cms_uri'] = artella.getCmsUri(file_path)
+        payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
         payload = json.dumps(payload)
 
         rsp = spigot.execute(command_action='do', command_name='getDependencies', payload=payload)
@@ -1200,7 +1238,7 @@ def create_asset(asset_name, asset_path):
 
     spigot = get_spigot_client()
     payload = dict()
-    payload['cms_uri'] = artella.getCmsUri(full_path)
+    payload['cms_uri'] = artella_lib.artella.getCmsUri(full_path)
     payload = json.dumps(payload)
 
     rsp = spigot.execute(command_action='do', command_name='createContainer', payload=payload)
@@ -1220,7 +1258,7 @@ def delete_file(file_path):
 
     spigot = get_spigot_client()
     payload = dict()
-    payload['cms_uri'] = artella.getCmsUri(file_path)
+    payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
     payload = json.dumps(payload)
 
     rsp = spigot.execute(command_action='do', command_name='delete', payload=payload)
@@ -1258,16 +1296,14 @@ def rename_file(file_path, new_name):
 
     spigot = get_spigot_client()
     payload = dict()
-    payload['cms_uri'] = artella.getCmsUri(file_path)
-    payload['dst_uri'] = artella.getCmsUri(new_path)
+    payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
+    payload['dst_uri'] = artella_lib.artella.getCmsUri(new_path)
     payload = json.dumps(payload)
 
     rsp = spigot.execute(command_action='do', command_name='rename', payload=payload)
 
     if isinstance(rsp, (unicode, str)):
         rsp = json.dumps(rsp)
-
-    print(rsp)
 
     return rsp
 
@@ -1288,7 +1324,7 @@ def new_folder(root_path, folder_name):
 
     spigot = get_spigot_client()
     payload = dict()
-    payload['cms_uri'] = artella.getCmsUri(file_path)
+    payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
     payload['new_folder'] = True
     payload = json.dumps(payload)
 
@@ -1298,23 +1334,3 @@ def new_folder(root_path, folder_name):
         rsp = json.dumps(rsp)
 
     return rsp
-
-
-if tp.is_maya():
-    try:
-        import Artella as artella
-    except ImportError:
-        try:
-            update_artella_paths()
-            if not os.environ.get('ENABLE_ARTELLA_PLUGIN', False):
-                if tp.Dcc.is_plugin_loaded('Artella.py'):
-                    tp.Dcc.unload_plugin('Artella.py')
-            else:
-                load_artella_maya_plugin()
-            import Artella as artella
-        except Exception:
-            artella = AbstractArtella
-            LOGGER.error('Impossible to load Artella Plugin!')
-else:
-    artella = AbstractArtella
-    LOGGER.debug('Using Abstract Artella Class')

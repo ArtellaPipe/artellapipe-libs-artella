@@ -6,81 +6,54 @@ Initialization module for artellapipe-libs-artella
 """
 
 import os
-import inspect
-import logging.config
+import re
+import traceback
+
+global artella
 
 
-def init(do_reload=False):
+class AbstractArtella(object):
+    """
+    Class that is used by non supported Artella DCCs (such as Houdini) to interface
+    with official Artella python module
+    """
+
+    @staticmethod
+    def getCmsUri(broken_path):
+        path_parts = re.split(r'[/\\]', broken_path)
+        while len(path_parts):
+            path_part = path_parts.pop(0)
+            if path_part == '_art':
+                relative_path = '/'.join(path_parts)
+                return relative_path
+        return ''
+
+
+def init():
     """
     Initializes module
     """
 
-    logging.config.fileConfig(get_logging_config(), disable_existing_loggers=False)
+    import tpDccLib as tp
+    from artellapipe.libs.artella.core import artellalib
 
-    from tpPyUtils import importer
+    global artella
 
-    class ArtellaMayaLib(importer.Importer, object):
-        def __init__(self):
-            super(ArtellaMayaLib, self).__init__(module_name='artellapipe.libs.maya')
-
-        def get_module_path(self):
-            """
-            Returns path where tpNameIt module is stored
-            :return: str
-            """
-
+    if tp.is_maya():
+        try:
+            import Artella as artella
+        except ImportError:
             try:
-                mod_dir = os.path.dirname(inspect.getframeinfo(inspect.currentframe()).filename)
-            except Exception:
-                try:
-                    mod_dir = os.path.dirname(__file__)
-                except Exception:
-                    try:
-                        import tpDccLib
-                        mod_dir = tpDccLib.__path__[0]
-                    except Exception:
-                        return None
-
-            return mod_dir
-
-    packages_order = []
-
-    artella_maya_lib = importer.init_importer(importer_class=ArtellaMayaLib, do_reload=False)
-    artella_maya_lib.import_packages(order=packages_order, only_packages=False)
-    if do_reload:
-        artella_maya_lib.reload_all()
-
-    create_logger_directory()
-
-
-def create_logger_directory():
-    """
-    Creates artellapipe-gui logger directory
-    """
-
-    artellapipe_logger_dir = os.path.normpath(os.path.join(os.path.expanduser('~'), 'artellapipe', 'logs'))
-    if not os.path.isdir(artellapipe_logger_dir):
-        os.makedirs(artellapipe_logger_dir)
-
-
-def get_logging_config():
-    """
-    Returns logging configuration file path
-    :return: str
-    """
-
-    create_logger_directory()
-
-    return os.path.normpath(os.path.join(os.path.dirname(__file__), '__logging__.ini'))
-
-
-def get_logging_level():
-    """
-    Returns logging level to use
-    :return: str
-    """
-
-    if os.environ.get('ARTELLAPIPE_LIBS_MAYA_LOG_LEVEL', None):
-        return os.environ.get('ARTELLAPIPE_LIBS_MAYA_LOG_LEVEL')
-
-    return os.environ.get('ARTELLAPIPE_LIBS_MAYA_LOG_LEVEL', 'WARNING')
+                artellalib.update_artella_paths()
+                if not os.environ.get('ENABLE_ARTELLA_PLUGIN', False):
+                    if tp.Dcc.is_plugin_loaded('Artella.py'):
+                        tp.Dcc.unload_plugin('Artella.py')
+                else:
+                    artellalib.load_artella_maya_plugin()
+                import Artella as artella
+            except Exception as exc:
+                artella = AbstractArtella
+                print('ERROR: Impossible to load Artella Plugin: {} | {}'.format(exc, traceback.format_exc()))
+    else:
+        artella = AbstractArtella
+        print('Using Abstract Artella Class')
