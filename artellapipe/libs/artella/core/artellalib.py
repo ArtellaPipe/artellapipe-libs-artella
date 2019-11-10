@@ -55,6 +55,7 @@ class AbstractArtella(object):
                 return relative_path
         return ''
 
+
 def update_artella_paths():
     """
     Updates system path to add artella paths if they are not already added
@@ -69,6 +70,7 @@ def update_artella_paths():
             if subdir not in sys.path:
                 LOGGER.debug('Adding Artella path: {0}'.format(subdir))
                 sys.path.append(subdir)
+
 
 def update_local_artella_root():
     """
