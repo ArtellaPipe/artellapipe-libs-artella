@@ -187,12 +187,6 @@ with official Artella python module</p>
 
 </dd></dl>
 
-<dl class="attribute">
-<dt id="artellapipe.libs.artella.core.artellalib.artella">
-<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellalib.</code><code class="sig-name descname">artella</code><a class="headerlink" href="#artellapipe.libs.artella.core.artellalib.artella" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <a class="reference internal" href="#artellapipe.libs.artella.core.artellalib.AbstractArtella" title="artellapipe.libs.artella.core.artellalib.AbstractArtella"><code class="xref py py-class docutils literal notranslate"><span class="pre">artellapipe.libs.artella.core.artellalib.AbstractArtella</span></code></a></p>
-</dd></dl>
-
 <dl class="function">
 <dt id="artellapipe.libs.artella.core.artellalib.can_unlock">
 <code class="sig-prename descclassname">artellapipe.libs.artella.core.artellalib.</code><code class="sig-name descname">can_unlock</code><span class="sig-paren">(</span><em class="sig-param">file_path</em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellalib.can_unlock" title="Permalink to this definition">¶</a></dt>
@@ -313,13 +307,6 @@ to our current installed (and launched) Artella app</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="artellapipe.libs.artella.core.artellalib.get_asset_history">
-<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellalib.</code><code class="sig-name descname">get_asset_history</code><span class="sig-paren">(</span><em class="sig-param">file_path</em>, <em class="sig-param">as_json=False</em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellalib.get_asset_history" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the history info of the given file, if exists
-:param file_path: str</p>
-</dd></dl>
-
-<dl class="function">
 <dt id="artellapipe.libs.artella.core.artellalib.get_asset_image">
 <code class="sig-prename descclassname">artellapipe.libs.artella.core.artellalib.</code><code class="sig-name descname">get_asset_image</code><span class="sig-paren">(</span><em class="sig-param">asset_path</em>, <em class="sig-param">project_id</em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellalib.get_asset_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the asset image from Artella server
@@ -367,8 +354,16 @@ to our current installed (and launched) Artella app</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="artellapipe.libs.artella.core.artellalib.get_file_current_working_version">
-<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellalib.</code><code class="sig-name descname">get_file_current_working_version</code><span class="sig-paren">(</span><em class="sig-param">file_path</em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellalib.get_file_current_working_version" title="Permalink to this definition">¶</a></dt>
+<dt id="artellapipe.libs.artella.core.artellalib.get_file_history">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellalib.</code><code class="sig-name descname">get_file_history</code><span class="sig-paren">(</span><em class="sig-param">file_path</em>, <em class="sig-param">as_json=False</em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellalib.get_file_history" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the history info of the given file, if exists
+:param file_path: str
+:param as_json: bool</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="artellapipe.libs.artella.core.artellalib.get_file_version">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellalib.</code><code class="sig-name descname">get_file_version</code><span class="sig-paren">(</span><em class="sig-param">file_path</em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellalib.get_file_version" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns current working version of the given file in Artella server
 :param file_path: str
 :return: int</p>
@@ -426,7 +421,7 @@ Only works if the user is loaded before to Artella
 <dd><p>Returns whether an absolute file path refers to a locked asset in edit mode, and if the file is locked
 by the current storage workspace
 :param file_path: str, absolute path to a file
-:return: bool, bool</p>
+:return: (bool, bool), Whether file is locked or not, whether the file is locked by another user or not</p>
 </dd></dl>
 
 <dl class="function">
@@ -434,6 +429,14 @@ by the current storage workspace
 <code class="sig-prename descclassname">artellapipe.libs.artella.core.artellalib.</code><code class="sig-name descname">is_published</code><span class="sig-paren">(</span><em class="sig-param">file_path</em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellalib.is_published" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns whether an absolute file path refers to a published asset
 :param file_path: str, absolute path to a file
+:return: bool</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="artellapipe.libs.artella.core.artellalib.is_updated">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellalib.</code><code class="sig-name descname">is_updated</code><span class="sig-paren">(</span><em class="sig-param">file_path</em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellalib.is_updated" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether or not given file path is updated to the last version
+:param file_path: str
 :return: bool</p>
 </dd></dl>
 
