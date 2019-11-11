@@ -590,7 +590,7 @@ def synchronize_path_with_folders(file_path, recursive=False):
     return False
 
 
-def get_asset_version(name):
+def split_version(name):
     """
     Returns the version of a specific given asset (model_v001, return [v001, 001, 1])
     :param name: str
