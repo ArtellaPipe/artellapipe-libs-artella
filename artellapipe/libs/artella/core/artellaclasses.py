@@ -160,7 +160,8 @@ class ArtellaAssetMetaData(object):
     #         if name == '_latest' or name == 'latest':
     #             continue
     #
-    #         # Before doing nothing, check if the published version is valid (has not been deleted from Artella manually)
+    #         # Before doing nothing, check if the published version is valid (has not been deleted from
+    #         Artella manually)
     #         version_valid = True
     #         version_path = os.path.join(self._path, '__{0}__'.format(name))
     #         version_info = artellalib.get_status(version_path)
@@ -187,7 +188,7 @@ class ArtellaAssetMetaData(object):
     #     for f in self._must_folders:
     #         self._published_folders[f] = collections.OrderedDict(sorted(self._published_folders[f].items()))
     #         self._published_folders_all[f] = collections.OrderedDict(sorted(self._published_folders_all[f].items()))
-    #
+
 
 class ArtellaReferencesMetaData(object):
     def __init__(self, ref_name, ref_path, ref_dict):
