@@ -316,14 +316,6 @@ to our current installed (and launched) Artella app</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="artellapipe.libs.artella.core.artellalib.get_asset_version">
-<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellalib.</code><code class="sig-name descname">get_asset_version</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellalib.get_asset_version" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the version of a specific given asset (model_v001, return [v001, 001, 1])
-:param name: str
-:return: list(str, int, int)</p>
-</dd></dl>
-
-<dl class="function">
 <dt id="artellapipe.libs.artella.core.artellalib.get_cms_uri">
 <code class="sig-prename descclassname">artellapipe.libs.artella.core.artellalib.</code><code class="sig-name descname">get_cms_uri</code><span class="sig-paren">(</span><em class="sig-param">path</em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellalib.get_cms_uri" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the CMS uri of the given path, if exists
@@ -517,6 +509,14 @@ by the current storage workspace
 <dd><p>Renames given file with new given name
 :param file_path: str
 :param new_name: str</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="artellapipe.libs.artella.core.artellalib.split_version">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellalib.</code><code class="sig-name descname">split_version</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellalib.split_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the version of a specific given asset (model_v001, return [v001, 001, 1])
+:param name: str
+:return: list(str, int, int)</p>
 </dd></dl>
 
 <dl class="function">
