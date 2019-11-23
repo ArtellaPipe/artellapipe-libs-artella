@@ -16,8 +16,11 @@ import os
 import re
 import sys
 import json
+import socket
+import struct
 import logging
 import traceback
+import threading
 try:
     from urllib.request import urlopen, HTTPPasswordMgrWithDefaultRealm, HTTPBasicAuthHandler, build_opener, \
         install_opener
@@ -37,6 +40,7 @@ from artellapipe.libs.artella.core import artellaclasses
 LOGGER = logging.getLogger()
 
 spigot_client = None
+spigot_thread = None
 
 
 class AbstractArtella(object):
@@ -292,9 +296,33 @@ def connect_artella_app_to_spigot(cli=None, app_identifier=None):
             get_handle_msg(json_msg)
         pass_msg_fn = pass_msg
 
-    cli.listen(artella_app_identifier, pass_msg_fn)
+    if tp.Dccs.Unknown:
+        spigot_listen(cli, artella_app_identifier, pass_msg_fn)
+    else:
+        cli.listen(artella_app_identifier, pass_msg_fn)
 
     return cli
+
+
+def spigot_listen(cli, app_id, handler):
+    """
+    Function that creates Spigot Thread.
+    We use it in non DCC Python apps to properly close thread when the app is closed
+    :param cli: SpigotClient
+    :param appId:str
+    :param handler: fn
+    """
+
+    global spigot_thread
+
+    spigot_thread = threading.Thread(
+            target=cli._pullMessages,
+            args=(app_id, handler)
+        )
+
+    # Demonize thread to make sure that thread is automatically closed when Python interpreter is closed
+    spigot_thread.daemon = True
+    spigot_thread.start()
 
 
 def load_artella_maya_plugin():
@@ -316,14 +344,14 @@ def load_artella_maya_plugin():
     return False
 
 
-def get_spigot_client(app_identifier=None):
+def get_spigot_client(app_identifier=None, force_create=True):
     """
     Creates, connects and returns an instance of the Spigot client
     :return: SpigotClient
     """
 
     global spigot_client
-    if spigot_client is None:
+    if spigot_client is None and force_create:
         if tp.is_maya():
             from tpMayaLib.core import gui
             gui.force_stack_trace_on()
