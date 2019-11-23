@@ -370,7 +370,7 @@ to our current installed (and launched) Artella app</p>
 
 <dl class="function">
 <dt id="artellapipe.libs.artella.core.artellalib.get_spigot_client">
-<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellalib.</code><code class="sig-name descname">get_spigot_client</code><span class="sig-paren">(</span><em class="sig-param">app_identifier=None</em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellalib.get_spigot_client" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellalib.</code><code class="sig-name descname">get_spigot_client</code><span class="sig-paren">(</span><em class="sig-param">app_identifier=None</em>, <em class="sig-param">force_create=True</em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellalib.get_spigot_client" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates, connects and returns an instance of the Spigot client
 :return: SpigotClient</p>
 </dd></dl>
@@ -509,6 +509,16 @@ by the current storage workspace
 <dd><p>Renames given file with new given name
 :param file_path: str
 :param new_name: str</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="artellapipe.libs.artella.core.artellalib.spigot_listen">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellalib.</code><code class="sig-name descname">spigot_listen</code><span class="sig-paren">(</span><em class="sig-param">cli</em>, <em class="sig-param">app_id</em>, <em class="sig-param">handler</em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellalib.spigot_listen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function that creates Spigot Thread.
+We use it in non DCC Python apps to properly close thread when the app is closed
+:param cli: SpigotClient
+:param appId:str
+:param handler: fn</p>
 </dd></dl>
 
 <dl class="function">
