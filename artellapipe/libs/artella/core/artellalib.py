@@ -16,8 +16,6 @@ import os
 import re
 import sys
 import json
-import socket
-import struct
 import logging
 import traceback
 import threading
@@ -316,9 +314,9 @@ def spigot_listen(cli, app_id, handler):
     global spigot_thread
 
     spigot_thread = threading.Thread(
-            target=cli._pullMessages,
-            args=(app_id, handler)
-        )
+        target=cli._pullMessages,
+        args=(app_id, handler)
+    )
 
     # Demonize thread to make sure that thread is automatically closed when Python interpreter is closed
     spigot_thread.daemon = True
