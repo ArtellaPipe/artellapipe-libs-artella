@@ -623,7 +623,7 @@ def split_version(name):
     :return: list(str, int, int)
     """
 
-    string_version = name[-4:]
+    string_version = name[-7:]
     int_version = map(int, re.findall(r'\d+', string_version))[0]
     int_version_formatted = '{0:03}'.format(int_version)
 
@@ -1167,14 +1167,14 @@ def publish_asset(asset_path, comment, selected_versions, version_name):
     return rsp
 
 
-def get_file_version(file_path):
+def get_local_working_version(file_path):
     """
-    Returns current working version of the given file in Artella server
+    Returns current version of the given file in Artella server
     :param file_path: str
     :return: int
     """
 
-    if not file_path or not os.path.isfile(file_path):
+    if not file_path or not os.path.exists(file_path):
         return -1
 
     history = get_file_history(file_path)
@@ -1188,6 +1188,75 @@ def get_file_version(file_path):
                 current_version = int(v[0])
 
     return current_version
+
+
+def get_current_version(file_path):
+    """
+    Returns current published version of the given file path in Artella server
+    :param file_path: str
+    :return: int
+    """
+
+    current_versions = dict()
+
+    rsp = get_status(file_path=file_path)
+    if rsp:
+        if isinstance(rsp, artellaclasses.ArtellaDirectoryMetaData):
+            if rsp.header.status != 'OK':
+                LOGGER.info('Status is not OK: {}'.format(rsp))
+                return False
+            for name, ref in rsp.references.items():
+                if ref.view_version is not None:
+                    current_versions[ref.name] = ref.view_version
+                else:
+                    current_versions[ref.name] = 0
+        elif isinstance(rsp, artellaclasses.ArtellaReferencesMetaData):
+            current_versions[rsp.name] = rsp.view_version
+        elif isinstance(rsp, artellaclasses.ArtellaAssetMetaData):
+            current_versions = rsp.get_published_versions()
+        else:
+            return current_versions
+
+    return current_versions
+
+
+def get_latest_version(file_path):
+    """
+    Returns last version of the given file path in Artella server
+    :param file_path: str
+    :return: int
+    """
+
+    maximum_versions = dict()
+
+    rsp = get_status(file_path=file_path)
+    if rsp:
+        if isinstance(rsp, artellaclasses.ArtellaDirectoryMetaData):
+            if rsp.header.status != 'OK':
+                LOGGER.info('Status is not OK: {}'.format(rsp))
+                return False
+            for name, ref in rsp.references.items():
+                maximum_versions[ref.name] = ref.maximum_version
+        elif isinstance(rsp, artellaclasses.ArtellaReferencesMetaData):
+            maximum_versions[rsp.name] = rsp.maximum_version
+        elif isinstance(rsp, artellaclasses.ArtellaAssetMetaData):
+            maximum_versions = dict()
+            published_versions = rsp.get_published_versions()
+            for file_name_version, info_version in published_versions.items():
+                if not file_name_version.startswith('__'):
+                    file_name_version = '__{}'.format(file_name_version)
+                if not file_name_version.endswith('__'):
+                    file_name_version = '{}__'.format(file_name_version)
+                file_version = split_version(file_name_version)
+                file_name = file_name_version.replace(file_version[0], '').replace('__', '')
+                if file_name not in maximum_versions:
+                    maximum_versions[file_name] = 0
+                if file_version[1] > maximum_versions[file_name]:
+                    maximum_versions[file_name] = file_version[1]
+        else:
+            return maximum_versions
+
+    return maximum_versions
 
 
 def within_artella_scene():
