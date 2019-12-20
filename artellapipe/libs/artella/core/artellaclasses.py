@@ -14,11 +14,8 @@ __email__ = "tpovedatd@gmail.com"
 
 import os
 import logging
-import collections
 
 from tpPyUtils import path as path_utils
-
-import artellapipe
 
 LOGGER = logging.getLogger()
 
@@ -82,11 +79,6 @@ class ArtellaAssetMetaData(object):
         self._published_folders = None
         self._published_folders_all = None
 
-        # if artellapipe.project:
-        #     self._must_folders = artellapipe.project.asset_must_files
-        # else:
-        #     self._must_folders = list()
-
     @property
     def path(self):
         """
@@ -103,91 +95,78 @@ class ArtellaAssetMetaData(object):
     @property
     def latest(self):
         return self._latest_
+    
+    def get_published_versions(self, all_versions=False, force_update=False):
+        """
+        Returns published versions of the asset
+        :param all_versions: bool
+        :param force_update: bool
+        :return:
+        """
 
-    # def get_is_published(self):
-    #     """
-    #     Returns whether the current asset is published or not
-    #     :return: bool
-    #     """
-    #
-    #     if self._published_folders is None:
-    #         self._get_published_data()
-    #
-    #     is_published = True
-    #     for f in self._must_folders:
-    #         must_dict = self._published_folders[f]
-    #         if not must_dict:
-    #             LOGGER.debug('Asset {0} is not published -> Folder "{1}" is not published yet!'.format(self._path, f))
-    #             is_published = False
-    #     return is_published
-    #
-    # def get_published_versions(self, all=False, force_update=False):
-    #     """
-    #     Returns published versions of the asset
-    #     :param all: str
-    #     :return:
-    #     """
-    #
-    #     if not force_update and self._published_folders_all is not None and self._published_folders is not None:
-    #         if all:
-    #             return self._published_folders_all
-    #         else:
-    #             return self._published_folders
-    #
-    #     self._get_published_data()
-    #
-    #     if all:
-    #         return self._published_folders_all
-    #     else:
-    #         return self._published_folders
-    #
-    # def _get_published_data(self):
-    #     """
-    #     Internal function that caches the published data of the asset if that info is not already cached
-    #     """
-    #
-    #     from artellapipe.libs.artella.core import artellalib
-    #
-    #     self._published_folders = dict()
-    #     self._published_folders_all = dict()
-    #
-    #     for f in self._must_folders:
-    #         self._published_folders[f] = dict()
-    #         self._published_folders_all[f] = dict()
-    #
-    #     # Retrieve asset published data
-    #     for name, data in self._dict['data'].items():
-    #         if name == '_latest' or name == 'latest':
-    #             continue
-    #
-    #         # Before doing nothing, check if the published version is valid (has not been deleted from
-    #         Artella manually)
-    #         version_valid = True
-    #         version_path = os.path.join(self._path, '__{0}__'.format(name))
-    #         version_info = artellalib.get_status(version_path)
-    #         if version_info:
-    #             if isinstance(version_info, ArtellaHeaderMetaData):
-    #                 version_valid = False
-    #             else:
-    #                 for n, d in version_info.references.items():
-    #                     if d.maximum_version_deleted and d.deleted:
-    #                         version_valid = False
-    #                         break
-    #
-    #         # Store all valid published folders
-    #         for f in self._must_folders:
-    #             if f in name:
-    #                 version = artellalib.split_version(name)[1]
-    #                 if not version_valid:
-    #                     self._published_folders_all[f][str(version)] = '__{0}__'.format(name)
-    #                 else:
-    #                     self._published_folders_all[f][str(version)] = '__{0}__'.format(name)
-    #                     self._published_folders[f][str(version)] = '__{0}__'.format(name)
-    #
-    #     # Sort all dictionaries by version number
-    #     for f in self._must_folders:
-    #         self._published_folders[f] = collections.OrderedDict(sorted(self._published_folders[f].items()))
-    #         self._published_folders_all[f] = collections.OrderedDict(sorted(self._published_folders_all[f].items()))
+        if not force_update and self._published_folders_all is not None and self._published_folders is not None:
+            if all_versions:
+                return self._published_folders_all
+            else:
+                return self._published_folders
+
+        self._get_published_data()
+
+        if all_versions:
+            return self._published_folders_all
+        else:
+            return self._published_folders
+
+    def _get_published_data(self):
+        """
+        Internal function that caches the published data of the asset if that info is not already cached
+        """
+
+        from artellapipe.libs.artella.core import artellalib
+
+        self._published_folders = dict()
+        self._published_folders_all = dict()
+
+        # for f in self._must_folders:
+        #     self._published_folders[f] = dict()
+        #     self._published_folders_all[f] = dict()
+
+        # Retrieve asset published data
+        for name, data in self._dict['data'].items():
+            if name == '_latest' or name == 'latest':
+                continue
+
+            # Before doing nothing, check if the published version is valid (has not been deleted from Artella manually)
+            version_valid = True
+
+            # NOTE: This checks if a version has been deleted or not
+            # NOTE: The problem is that this checking is too time consuming.
+            # TODO: Find a better way to check this (maybe get latest version first and check deletion to first version)
+            # version_path = os.path.join(self._path, '__{0}__'.format(name))
+            # version_info = artellalib.get_status(version_path)
+            # if version_info:
+            #     if isinstance(version_info, ArtellaHeaderMetaData):
+            #         version_valid = False
+            #     else:
+            #         for n, d in version_info.references.items():
+            #             if d.maximum_version_deleted and d.deleted:
+            #                 version_valid = False
+            #                 break
+            # else:
+            #     version_valid = False
+
+            if version_valid:
+                self._published_folders[name] = list()
+                self._published_folders_all[name] = list()
+
+            # Store all valid published folders
+            version = artellalib.split_version(name)[1]
+            name_version = '__{0}__'.format(name)
+            self._published_folders_all[name].append(
+                (str(version), name_version, os.path.join(self.path, name_version)))
+            if version_valid:
+                self._published_folders[name].append(
+                    (str(version), name_version, os.path.join(self.path, name_version)))
 
 
 class ArtellaReferencesMetaData(object):
