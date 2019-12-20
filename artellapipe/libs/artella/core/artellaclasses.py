@@ -95,7 +95,7 @@ class ArtellaAssetMetaData(object):
     @property
     def latest(self):
         return self._latest_
-    
+
     def get_published_versions(self, all_versions=False, force_update=False):
         """
         Returns published versions of the asset
