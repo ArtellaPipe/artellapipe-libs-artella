@@ -4,7 +4,8 @@
 Qt.py
 pytest
 pytest-cov
-coveralls
+coveralls==1.8.2; python_version>='3.6'
+coveralls==1.9.2; python_version<'3.6'
 sphinx
 sphinx_rtd_theme
 tpPyUtils
