@@ -27,9 +27,9 @@ except ImportError:
 
 from Qt.QtWidgets import *
 
-import tpDccLib as tp
-from tpPyUtils import osplatform, path as path_utils
-from tpQtLib.core import qtutils
+import tpDcc as tp
+from tpDcc.libs.python import osplatform, path as path_utils
+from tpDcc.libs.qt.core import qtutils
 
 import artellapipe
 from artellapipe.libs import artella as artella_lib
@@ -351,7 +351,7 @@ def get_spigot_client(app_identifier=None, force_create=True):
     global spigot_client
     if spigot_client is None and force_create:
         if tp.is_maya():
-            from tpMayaLib.core import gui
+            from tpDcc.dccs.maya.core import gui
             gui.force_stack_trace_on()
         from am.artella.spigot.spigot import SpigotClient
         spigot_client = SpigotClient()
@@ -616,16 +616,22 @@ def synchronize_path_with_folders(file_path, recursive=False):
     return False
 
 
-def split_version(name):
+def split_version(name, next_version=False):
     """
     Returns the version of a specific given asset (model_v001, return [v001, 001, 1])
     :param name: str
+    :param next_version: bool
     :return: list(str, int, int)
     """
 
     string_version = name[-7:]
     int_version = map(int, re.findall(r'\d+', string_version))[0]
     int_version_formatted = '{0:03}'.format(int_version)
+    if next_version:
+        new_int_version = int_version + 1
+        new_int_version_formatted = '{0:03}'.format(new_int_version)
+        new_string_version = string_version.replace(int_version_formatted, new_int_version_formatted)
+        return new_string_version, new_int_version, new_int_version_formatted
 
     return string_version, int_version, int_version_formatted
 
@@ -1092,7 +1098,7 @@ def upload_new_asset_version(file_path=None, comment='Published new version with
             if tp.Dcc.scene_is_modified():
                 tp.Dcc.save_current_scene(force=True)
             if tp.is_maya():
-                from tpMayaLib.core import helpers
+                from tpDcc.dccs.maya.core import helpers
                 if helpers.file_has_student_line(filename=file_path):
                     helpers.clean_student_line(filename=file_path)
                     if helpers.file_has_student_line(filename=file_path):
