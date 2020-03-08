@@ -34,7 +34,7 @@ def init():
     Initializes module
     """
 
-    import tpDccLib as tp
+    import tpDcc as tp
     from artellapipe.libs.artella.core import artellalib
 
     global artella

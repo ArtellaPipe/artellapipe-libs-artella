@@ -15,7 +15,7 @@ __email__ = "tpovedatd@gmail.com"
 import os
 import logging
 
-from tpPyUtils import path as path_utils
+from tpDcc.libs.python import path as path_utils
 
 LOGGER = logging.getLogger()
 
