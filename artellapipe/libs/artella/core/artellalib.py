@@ -16,6 +16,7 @@ import os
 import re
 import sys
 import json
+import socket
 import logging
 import traceback
 import threading
@@ -28,7 +29,7 @@ except ImportError:
 from Qt.QtWidgets import *
 
 import tpDcc as tp
-from tpDcc.libs.python import osplatform, path as path_utils
+from tpDcc.libs.python import osplatform
 from tpDcc.libs.qt.core import qtutils
 
 import artellapipe
@@ -83,6 +84,9 @@ def update_local_artella_root():
     metadata = get_metadata()
     if metadata:
         metadata.update_local_root()
+        return True
+
+    return False
 
 
 def check_artella_plugin_loaded():
@@ -285,7 +289,7 @@ def connect_artella_app_to_spigot(cli=None, app_identifier=None):
         pass_msg_fn = artella_lib.artella.passMsgToMainThread
     elif tp.is_houdini():
         def pass_msg_to_main_thread(json_msg):
-            from tpHoudiniLib.core import helpers
+            from tpDcc.dccs.houdini.core import helpers
             main_thread_fn = helpers.get_houdini_pass_main_thread_function()
             main_thread_fn(get_handle_msg, json_msg)
         pass_msg_fn = pass_msg_to_main_thread
@@ -393,11 +397,17 @@ def fix_path_by_project(project, path, fullpath=False):
 def get_metadata():
     """
     Returns Artella App MetaData
-    :return: ArtellaMetaData
+    :return: ArtellaMetaData or None
     """
 
     spigot = get_spigot_client()
-    rsp = spigot.execute(command_action='do', command_name='getMetaData', payload='{}')
+
+    try:
+        rsp = spigot.execute(command_action='do', command_name='getMetaData', payload='{}')
+    except socket.error as exc:
+        # LOGGER.debug(exc)
+        return None
+
     rsp = json.loads(rsp)
 
     metadata = artellaclasses.ArtellaAppMetaData(
@@ -410,7 +420,7 @@ def get_metadata():
     return metadata
 
 
-def get_status(file_path, as_json=False, max_tries=10):
+def get_status(file_path, as_json=False, max_tries=3):
     """
     Returns the status of  the given file path
     :param file_path: str
@@ -422,16 +432,20 @@ def get_status(file_path, as_json=False, max_tries=10):
 
     uri = get_cms_uri(file_path)
     if not uri:
-        LOGGER.warning('Unable to get cmds uri from path: {}'.format(file_path))
+        LOGGER.debug('Unable to get cmds uri from path: {}'.format(file_path))
         return False
 
     spigot = get_spigot_client()
 
     current_try = 0
+    rsp = None
 
     while current_try < max_tries:
-        rsp = spigot.execute(command_action='do', command_name='status', payload=uri)
-        if isinstance(rsp, (str, unicode)):
+        try:
+            rsp = spigot.execute(command_action='do', command_name='status', payload=uri)
+        except Exception as exc:
+            LOGGER.debug(exc)
+        if rsp and isinstance(rsp, (str, unicode)):
             try:
                 rsp = json.loads(rsp)
                 break
@@ -441,7 +455,7 @@ def get_status(file_path, as_json=False, max_tries=10):
 
     if current_try >= max_tries:
         msg = 'Artella is not available at this moment ... Restart Maya and try again please!'
-        LOGGER.error(msg)
+        LOGGER.debug(msg)
         if artellapipe.project:
             artellapipe.project.message(msg)
         return {}
@@ -452,14 +466,13 @@ def get_status(file_path, as_json=False, max_tries=10):
     # Artella is down!!!!!
     if not rsp:
         msg = 'Artella is not available at this moment ... Restart Maya and try again please!'
-        LOGGER.error(msg)
+        LOGGER.debug(msg)
         if artellapipe.project:
             artellapipe.project.message(msg)
         return None
 
     if 'data' in rsp:
         if '_latest'in rsp['data']:
-            # if 'SEQ' not in rsp['meta']['container_uri']:
             status_metadata = artellaclasses.ArtellaAssetMetaData(metadata_path=file_path, status_dict=rsp)
             return status_metadata
 
@@ -481,7 +494,7 @@ def get_cms_uri_current_file():
 
     cms_uri = artella_lib.artella.getCmsUri(current_file)
     if not cms_uri:
-        LOGGER.error('Unable to get CMS uri from path: {0}'.format(current_file))
+        LOGGER.debug('Unable to get CMS uri from path: {0}'.format(current_file))
         return False
 
     LOGGER.debug('Retrieved CMS uri: {0}'.format(cms_uri))
@@ -503,7 +516,7 @@ def get_cms_uri(path):
     path = os.path.normpath(path)
     cms_uri = artella_lib.artella.getCmsUri(path)
     if not cms_uri:
-        LOGGER.error('Unable to get CMS uri from path: {0}'.format(path))
+        LOGGER.debug('Unable to get CMS uri from path: {0}'.format(path))
         return False
 
     req = json.dumps({'cms_uri': cms_uri})
@@ -601,11 +614,23 @@ def synchronize_path_with_folders(file_path, recursive=False):
             return True
         else:
             if os.path.isdir(file_path):
-                child_dirs = os.listdir(file_path)
+                child_dirs = list()
+                status = get_status(file_path)
+                if isinstance(status, artellaclasses.ArtellaDirectoryMetaData):
+                    for ref_name, ref_data in status.references.items():
+                        dir_path = ref_data.path
+                        if os.path.isdir(dir_path) or os.path.splitext(dir_path)[-1]:
+                            continue
+                        child_dirs.append(dir_path)
+                elif isinstance(status, artellaclasses.ArtellaAssetMetaData):
+                    working_folder = artellapipe.project.get_working_folder()
+                    working_path = os.path.join(status.path, working_folder)
+                    artella_data = get_status(working_path)
+                    if isinstance(artella_data, artellaclasses.ArtellaDirectoryMetaData):
+                        child_dirs.append(working_path)
                 if child_dirs:
                     for child_dir in child_dirs:
-                        full_child_path = path_utils.clean_path(os.path.join(file_path, child_dir))
-                        synchronize_path_with_folders(full_child_path, recursive=recursive)
+                        synchronize_path_with_folders(child_dir, recursive=recursive)
                 return True
 
     except Exception as e:
@@ -1286,7 +1311,8 @@ def get_user_avatar(user_id):
     :return:
     """
 
-    artella_cms_url = artella_lib.config.get('server', 'cms_url')
+    project_type = artellapipe.project.get_project_type()
+    artella_cms_url = artella_lib.config.get('server', project_type).get('cms_url')
     manager = HTTPPasswordMgrWithDefaultRealm()
     manager.add_password(None, artella_cms_url, 'default', 'default')
     auth = HTTPBasicAuthHandler(manager)
