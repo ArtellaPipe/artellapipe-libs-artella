@@ -591,11 +591,12 @@ def synchronize_file(file_path):
         return None
 
 
-def synchronize_path_with_folders(file_path, recursive=False):
+def synchronize_path_with_folders(file_path, recursive=False, only_latest_published_versions=True):
     """
     Synchronizes given path and all its folders
     :param file_path: str
     :param recursive: bool
+    :param only_latest_published_versions: bool
     :return:
     """
 
@@ -615,7 +616,7 @@ def synchronize_path_with_folders(file_path, recursive=False):
         else:
             if os.path.isdir(file_path):
                 child_dirs = list()
-                status = get_status(file_path)
+                # status = get_status(file_path)
                 if isinstance(status, artellaclasses.ArtellaDirectoryMetaData):
                     for ref_name, ref_data in status.references.items():
                         dir_path = ref_data.path
@@ -628,6 +629,17 @@ def synchronize_path_with_folders(file_path, recursive=False):
                     artella_data = get_status(working_path)
                     if isinstance(artella_data, artellaclasses.ArtellaDirectoryMetaData):
                         child_dirs.append(working_path)
+
+                    if only_latest_published_versions:
+                        published_versions = status.get_latest_published_versions(force_update=True)
+                    else:
+                        published_versions = status.get_published_versions(force_update=True)
+                    if published_versions:
+                        for version_name, version_data_list in published_versions.items():
+                            version_path = version_data_list[2]
+                            # No need to check path status because published versions function already does that
+                            child_dirs.append(version_path)
+
                 if child_dirs:
                     for child_dir in child_dirs:
                         synchronize_path_with_folders(child_dir, recursive=recursive)
