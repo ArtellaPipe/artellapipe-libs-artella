@@ -97,11 +97,12 @@ class ArtellaAssetMetaData(object):
     def latest(self):
         return self._latest_
 
-    def get_published_versions(self, all_versions=False, force_update=False):
+    def get_published_versions(self, all_versions=False, force_update=False, check_validity=True):
         """
         Returns published versions of the asset
         :param all_versions: bool
         :param force_update: bool
+        :param check_validity: bool
         :return:
         """
 
@@ -111,28 +112,29 @@ class ArtellaAssetMetaData(object):
             else:
                 return self._published_folders
 
-        self._get_published_data()
+        self._get_published_data(check_validity=check_validity)
 
         if all_versions:
             return self._published_folders_all
         else:
             return self._published_folders
 
-    def get_latest_published_versions(self, force_update=False):
+    def get_latest_published_versions(self, force_update=False, check_validity=True):
         """
         Returns latest published versions of the asset
         :param force_update: bool
+        :param check_validity: bool
         :return:
         """
 
         if not force_update and self._latest_published_folders is not None:
             return self._latest_published_folders
 
-        self._get_published_data()
+        self._get_published_data(check_validity=check_validity)
 
         return self._latest_published_folders
 
-    def _get_published_data(self):
+    def _get_published_data(self, check_validity=True):
         """
         Internal function that caches the published data of the asset if that info is not already cached
         """
@@ -155,25 +157,27 @@ class ArtellaAssetMetaData(object):
             # Before doing nothing, check if the published version is valid (has not been deleted from Artella manually)
             version_valid = True
 
-            # NOTE: This checks if a version has been deleted or not
-            # NOTE: The problem is that this checking is too time consuming.
-            # TODO: Find a better way to check this (maybe get latest version first and check deletion to first version)
-            version_path = os.path.join(self._path, '__{0}__'.format(name))
-            version_info = artellalib.get_status(version_path)
-            if version_info:
-                if isinstance(version_info, ArtellaHeaderMetaData):
-                    version_valid = False
+            if check_validity:
+                # NOTE: This checks if a version has been deleted or not
+                # NOTE: The problem is that this checking is too time consuming.
+                # TODO: Find a better way to check this (maybe get latest version first and check deletion to first version)
+                version_path = os.path.join(self._path, '__{0}__'.format(name))
+                version_info = artellalib.get_status(version_path)
+                if version_info:
+                    if isinstance(version_info, ArtellaHeaderMetaData):
+                        version_valid = False
+                    else:
+                        for n, d in version_info.references.items():
+                            if d.maximum_version_deleted and d.deleted:
+                                version_valid = False
+                                break
                 else:
-                    for n, d in version_info.references.items():
-                        if d.maximum_version_deleted and d.deleted:
-                            version_valid = False
-                            break
-            else:
-                version_valid = False
+                    version_valid = False
 
             if version_valid:
                 self._published_folders[name] = list()
-                self._published_folders_all[name] = list()
+
+            self._published_folders_all[name] = list()
 
             # Store all valid published folders
             split_version = artellalib.split_version(name)
@@ -186,9 +190,9 @@ class ArtellaAssetMetaData(object):
                 self._published_folders[name].append(
                     (str(version), name_version, os.path.join(self.path, name_version)))
                 if version_file_name not in self._latest_published_folders or version > \
-                        int(self._latest_published_folders[version_file_name][0]):
-                    self._latest_published_folders[version_file_name] = (
-                        str(version), name_version, os.path.join(self.path, name_version))
+                        int(self._latest_published_folders[version_file_name][0][0]):
+                    self._latest_published_folders[version_file_name] = [(
+                        str(version), name_version, os.path.join(self.path, name_version))]
 
 
 class ArtellaReferencesMetaData(object):

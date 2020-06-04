@@ -472,7 +472,7 @@ def get_status(file_path, as_json=False, max_tries=3):
         return None
 
     if 'data' in rsp:
-        if '_latest'in rsp['data']:
+        if '_latest' in rsp['data']:
             status_metadata = artellaclasses.ArtellaAssetMetaData(metadata_path=file_path, status_dict=rsp)
             return status_metadata
 
@@ -636,9 +636,10 @@ def synchronize_path_with_folders(file_path, recursive=False, only_latest_publis
                         published_versions = status.get_published_versions(force_update=True)
                     if published_versions:
                         for version_name, version_data_list in published_versions.items():
-                            version_path = version_data_list[2]
-                            # No need to check path status because published versions function already does that
-                            child_dirs.append(version_path)
+                            for version_data in version_data_list:
+                                version_path = version_data[2]
+                                # No need to check path status because published versions function already does that
+                                child_dirs.append(version_path)
 
                 if child_dirs:
                     for child_dir in child_dirs:
@@ -1263,10 +1264,11 @@ def get_current_version(file_path):
     return current_versions
 
 
-def get_latest_version(file_path):
+def get_latest_version(file_path, check_validity=True):
     """
     Returns last version of the given file path in Artella server
     :param file_path: str
+    :param check_validity: bool
     :return: int
     """
 
@@ -1284,7 +1286,7 @@ def get_latest_version(file_path):
             maximum_versions[rsp.name] = rsp.maximum_version
         elif isinstance(rsp, artellaclasses.ArtellaAssetMetaData):
             maximum_versions = dict()
-            published_versions = rsp.get_published_versions()
+            published_versions = rsp.get_published_versions(check_validity=check_validity)
             for file_name_version, info_version in published_versions.items():
                 if not file_name_version.startswith('__'):
                     file_name_version = '__{}'.format(file_name_version)
