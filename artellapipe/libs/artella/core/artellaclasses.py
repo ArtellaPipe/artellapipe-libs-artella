@@ -160,7 +160,8 @@ class ArtellaAssetMetaData(object):
             if check_validity:
                 # NOTE: This checks if a version has been deleted or not
                 # NOTE: The problem is that this checking is too time consuming.
-                # TODO: Find a better way to check this (maybe get latest version first and check deletion to first version)
+                # TODO: Find a better way to check this
+                # TODO: (maybe get latest version first and check deletion to first version)
                 version_path = os.path.join(self._path, '__{0}__'.format(name))
                 version_info = artellalib.get_status(version_path)
                 if version_info:
