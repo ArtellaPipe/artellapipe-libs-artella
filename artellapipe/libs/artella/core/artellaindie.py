@@ -1,9 +1,20 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# #!/usr/bin/env python
+# # -*- coding: utf-8 -*-
 
 """
 Module that contains Artella Indie API implementation
 """
+
+__all__ = [
+    'getCmsUri', 'update_local_artella_root', 'check_artella_plugin_loaded', 'get_artella_data_folder',
+    'update_artella_paths', 'get_artella_python_folder', 'get_artella_plugins_folder', 'get_artella_dcc_plugin',
+    'get_artella_app', 'get_artella_program_folder', 'get_artella_launch_shortcut', 'launch_artella_app',
+    'close_all_artella_app_processes', 'connect_artella_app_to_spigot', 'spigot_listen', 'load_artella_maya_plugin',
+    'get_artella_client', 'get_artella_app_identifier', 'fix_path_by_project', 'get_metadata', 'get_cms_uri',
+    'get_cms_uri_current_file', 'get_status', 'get_status_current_file', 'explore_file', 'pause_synchronization',
+    'resume_synchronization', 'get_synchronization_progress', 'synchronize_path', 'synchronize_file',
+    'synchronize_path_with_folders'
+]
 
 import os
 import re

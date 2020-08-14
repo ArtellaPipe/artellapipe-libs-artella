@@ -5,7 +5,6 @@
 Module that contains Artella Enterprise API implementation
 """
 
-import time
 import logging
 import traceback
 
@@ -21,8 +20,8 @@ artella_client = None
 
 def init(dev=False):
     import artella.loader
-    artella.loader.shutdown(dev=dev)
-    artella.loader.init(dev=dev)
+    artella.loader.shutdown(dev=dev, cleanup_modules=True)
+    artella.loader.init(dev=dev, create_menu=False, create_callbacks=False)
 
 
 def update_local_artella_root():
