@@ -2,22 +2,61 @@
 # -*- coding: utf-8 -*-
 
 """
-Module that contains data classes for manage Artella server information in a more OO approach
+Module that contains Artella classes implementations
 """
-
-from __future__ import print_function, division, absolute_import
-
-__author__ = "Tomas Poveda"
-__license__ = "MIT"
-__maintainer__ = "Tomas Poveda"
-__email__ = "tpovedatd@gmail.com"
 
 import os
 import logging
 
 from tpDcc.libs.python import path as path_utils
 
-LOGGER = logging.getLogger()
+LOGGER = logging.getLogger('artellapipe-libs-artella')
+
+
+class ArtellaAppMetaData(object):
+    def __init__(self, local_root, storage_id, cms_web_root=None, token=None, openers_file=None):
+        """
+        Class used to store data retrieve by getMetaData command
+        """
+
+        self._local_root = local_root
+        self._storage_id = storage_id
+        self._cms_web_root = cms_web_root
+        self._token = token
+
+        self._openers_file = openers_file
+
+    @property
+    def cms_web_root(self):
+        return self._cms_web_root
+
+    @property
+    def local_root(self):
+        return self._local_root
+
+    @property
+    def storage_id(self):
+        return self._storage_id
+
+    @property
+    def token(self):
+        return self._token
+
+    @property
+    def openers_file(self):
+        return self._openers_file
+
+    def update_local_root(self):
+        """
+        Updates the environment variable that stores the Artella Local Path
+        NOTE: This is done by Artella plugin when is loaded, so we should not do it manually again
+        :return:
+        """
+
+        from artellapipe.libs import artella as artella_lib
+
+        artella_root_prefix = artella_lib.config.get('app', 'root_prefix')
+        os.environ[artella_root_prefix] = self._local_root
 
 
 class ArtellaHeaderMetaData(object):
@@ -328,47 +367,6 @@ class ArtellaDirectoryMetaData(object):
         LOGGER.debug('Path: {}'.format(self.path))
         LOGGER.debug('Header: {}'.format(self.header))
         LOGGER.debug('References: {}'.format(self.references))
-
-
-class ArtellaAppMetaData(object):
-    def __init__(self, cms_web_root, local_root, storage_id, token):
-        """
-        Class used to store data retrieve by getMetaData command
-        :param client:
-        """
-
-        self._cms_web_root = cms_web_root
-        self._local_root = local_root
-        self._storage_id = storage_id
-        self._token = token
-
-    @property
-    def cms_web_root(self):
-        return self._cms_web_root
-
-    @property
-    def local_root(self):
-        return self._local_root
-
-    @property
-    def storage_id(self):
-        return self._storage_id
-
-    @property
-    def token(self):
-        return self._token
-
-    def update_local_root(self):
-        """
-        Updates the environment variable that stores the Artella Local Path
-        NOTE: This is done by Artella plugin when is loaded, so we should not do it manually again
-        :return:
-        """
-
-        from artellapipe.libs import artella as artella_lib
-
-        artella_root_prefix = artella_lib.config.get('app', 'root_prefix')
-        os.environ[artella_root_prefix] = self._local_root
 
 
 class ArtellaFileVerionMetaData(object):
