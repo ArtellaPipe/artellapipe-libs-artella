@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Module that contains general tests for artellapipe-libs-maya
+Module that contains general tests for artellapipe-libs-artella
 """
 
 import pytest
