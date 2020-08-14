@@ -11,3 +11,4 @@ sphinx_rtd_theme
 tpDcc-libs-python
 tpDcc-core
 tpDcc-libs-qt
+artella-plugins-core
