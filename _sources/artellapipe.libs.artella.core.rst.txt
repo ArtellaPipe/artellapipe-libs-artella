@@ -7,7 +7,10 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
+   artellapipe.libs.artella.core.abstract
    artellapipe.libs.artella.core.artellaclasses
+   artellapipe.libs.artella.core.artellaenterprise
+   artellapipe.libs.artella.core.artellaindie
    artellapipe.libs.artella.core.artellalib
 
 Module contents
