@@ -686,3 +686,17 @@ def synchronize_path_with_folders(file_path, recursive=False, only_latest_publis
         return None
 
     return False
+
+
+def get_artella_project_url(project_id, files_url=True):
+    """
+    Returns Artella project URL
+    :param project_id: str, Unique ID for the Artella project
+    :param files_url: bool, Whether to return root project URL of project files URL
+    :return: str
+    """
+
+    artella_web = artellapipe.libs.artella.config.get('server', dict()).get('url', 'https://indie.artella.com')
+    artella_url = '{}/project/{}'.format(artella_web, project_id)
+
+    return artella_url if not files_url else '{}/files'.format(artella_url)

@@ -8,8 +8,7 @@ Module that contains Artella Enterprise API implementation
 import logging
 import traceback
 
-import artella  # Do not remove
-
+import artellapipe
 from artellapipe.libs.artella.core import artellaclasses
 
 LOGGER = logging.getLogger('artellapipe-libs-artella')
@@ -185,3 +184,48 @@ def synchronize_path_with_folders(file_path, recursive=False, only_latest_publis
     valid = client.download(file_path, recursive=recursive)
 
     return valid
+
+
+def get_artella_project_url(project_id, files_url=True):
+    """
+    Returns Artella project URL
+    :param project_id: str, Unique ID for the Artella project
+    :param files_url: bool, Whether to return root project URL of project files URL
+    :return: str
+    """
+
+    client = get_artella_client()
+
+    artella_web = artellapipe.libs.artella.config.get('server', dict()).get('url', 'https://www.artella.com')
+
+    project_api = None
+    projects = client.get_local_projects() or dict()
+    for project_name, project_data in projects.items():
+        project_remote = project_data.get('remote', None)
+        if not project_remote:
+            continue
+        if project_remote == project_id:
+            project_api = project_data.get('api', None)
+            break
+
+    if not project_api:
+        remote_projects = client.get_remote_projects()
+        if not remote_projects:
+            return
+        for remote_api, projects_data in remote_projects.items():
+            if not projects_data:
+                continue
+            for project_remote, project_data in projects_data.items():
+                if project_remote == project_id:
+                    break
+    if not project_api:
+        LOGGER.warning('No Project API for project with ID: {}'.format(project_id))
+        return artella_web
+
+    clean_api = project_api.replace('-api.', '.')
+    clean_id = project_id.replace('project__', '')
+
+    if files_url:
+        return '{}/project/{}/files/p'.format(clean_api, clean_id)
+
+    return '{}/project/{}/feed/all'.format(clean_api, clean_id)

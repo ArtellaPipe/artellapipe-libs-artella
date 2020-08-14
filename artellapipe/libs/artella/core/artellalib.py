@@ -469,3 +469,16 @@ def synchronize_path_with_folders(file_path, recursive=False, only_latest_publis
     """
 
     raise RuntimeError('get_status function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def get_artella_project_url(project_id, files_url=True):
+    """
+    Returns Artella project URL
+    :param project_id: str, Unique ID for the Artella project
+    :param files_url: bool, Whether to return root project URL of project files URL
+    :return: str
+    """
+
+    raise RuntimeError('get_artella_project_url function not implemented in Artella Abstract API!')
