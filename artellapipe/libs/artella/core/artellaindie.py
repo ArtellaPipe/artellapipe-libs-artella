@@ -5,17 +5,6 @@
 Module that contains Artella Indie API implementation
 """
 
-__all__ = [
-    'getCmsUri', 'update_local_artella_root', 'check_artella_plugin_loaded', 'get_artella_data_folder',
-    'update_artella_paths', 'get_artella_python_folder', 'get_artella_plugins_folder', 'get_artella_dcc_plugin',
-    'get_artella_app', 'get_artella_program_folder', 'get_artella_launch_shortcut', 'launch_artella_app',
-    'close_all_artella_app_processes', 'connect_artella_app_to_spigot', 'spigot_listen', 'load_artella_maya_plugin',
-    'get_artella_client', 'get_artella_app_identifier', 'fix_path_by_project', 'get_metadata', 'get_cms_uri',
-    'get_cms_uri_current_file', 'get_status', 'get_status_current_file', 'explore_file', 'pause_synchronization',
-    'resume_synchronization', 'get_synchronization_progress', 'synchronize_path', 'synchronize_file',
-    'synchronize_path_with_folders'
-]
-
 import os
 import re
 import sys
@@ -24,6 +13,13 @@ import socket
 import logging
 import threading
 import traceback
+try:
+    from urllib.request import urlopen, HTTPPasswordMgrWithDefaultRealm, HTTPBasicAuthHandler, build_opener, \
+        install_opener
+except ImportError:
+    from urllib2 import urlopen, HTTPPasswordMgrWithDefaultRealm, HTTPBasicAuthHandler, build_opener, install_opener
+
+from Qt.QtWidgets import *
 
 import tpDcc as tp
 from tpDcc.libs.python import osplatform
@@ -700,3 +696,827 @@ def get_artella_project_url(project_id, files_url=True):
     artella_url = '{}/project/{}'.format(artella_web, project_id)
 
     return artella_url if not files_url else '{}/files'.format(artella_url)
+
+
+def split_version(name, next_version=False):
+    """
+    Returns the version of a specific given asset (model_v001, return [v001, 001, 1])
+    :param name: str
+    :param next_version: bool
+    :return: list(str, int, int)
+    """
+
+    string_version = name[-7:]
+    int_version = map(int, re.findall(r'\d+', string_version))[0]
+    int_version_formatted = '{0:03}'.format(int_version)
+    if next_version:
+        new_int_version = int_version + 1
+        new_int_version_formatted = '{0:03}'.format(new_int_version)
+        new_string_version = string_version.replace(int_version_formatted, new_int_version_formatted)
+        return new_string_version, new_int_version, new_int_version_formatted
+
+    return string_version, int_version, int_version_formatted
+
+
+def get_file_history(file_path, as_json=False):
+    """
+    Returns the history info of the given file, if exists
+    :param file_path: str
+    :param as_json: bool
+    """
+
+    uri = get_cms_uri(file_path)
+    spigot = get_artella_client()
+    rsp = spigot.execute(command_action='do', command_name='history', payload=uri)
+
+    try:
+        if isinstance(rsp, (unicode, str)):
+            rsp = json.loads(rsp)
+    except Exception as e:
+        msg = 'Error while getting file history info: {}'.format(rsp)
+        LOGGER.error(msg)
+        LOGGER.error(str(e))
+        return {}
+
+    if as_json:
+        return rsp
+
+    if 'data' in rsp:
+        file_metadata = artellaclasses.ArtellaFileMetaData(file_dict=rsp)
+        return file_metadata
+
+    return rsp
+
+
+def get_asset_image(asset_path, project_id):
+    """
+    Returns the asset image from Artella server
+    :param asset_path: str, path of the asset relative to the Assets folder
+    :param project_id: str, ID of the Artella project you are currently working
+    :return:
+    """
+
+    # TODO: Authentication problem when doing request: look for workaround
+    image_url = os.path.join('https://cms-static.artella.com/cms_browser/thumbcontainerAvatar', project_id, asset_path)
+    data = urlopen(image_url).read()
+
+    return data
+
+
+def launch_maya(file_path, maya_version=None):
+    """
+    :param file_path: str
+    :param maya_version: int
+    :return:
+    """
+
+    if not tp.is_maya():
+        return
+
+    if maya_version is None:
+        maya_version = tp.Dcc.get_version()
+
+    spigot = get_artella_client()
+
+    payload = dict()
+    payload['appName'] = "maya.{0}".format(str(maya_version))
+    payload['parameter'] = "\"{0}\"".format(file_path)
+    payload['wait'] = "60"
+    payload = json.dumps(payload)
+    rsp = spigot.execute(command_action='do', command_name='launchApp', payload=payload)
+    if isinstance(rsp, (unicode, str)):
+        rsp = json.loads(rsp)
+
+    return rsp
+
+
+def open_file_in_maya(file_path, maya_version=None):
+    """
+    Open the given path in the given Maya version
+    :param file_path: str
+    :param maya_version: int
+    """
+
+    if not tp.is_maya():
+        return None
+
+    if maya_version is None:
+        maya_version = tp.Dcc.get_version()
+
+    spigot = get_artella_client()
+
+    # Firt we try to open the app if its not launched
+    launch_maya(file_path=file_path, maya_version=maya_version)
+
+    # Now we open the file
+    payload = dict()
+    payload['appId'] = "maya.{0}".format(str(maya_version))
+    payload['message'] = "{\"CommandName\":\"open\",\"" \
+                         "CommandArgs\":{\"path\":\"" + file_path + "\"}}".replace('\\', '/')
+    payload['message'] = payload['message'].replace('\\', '/').replace('//', '/')
+    payload = json.dumps(payload)
+
+    rsp = spigot.execute(command_action='do', command_name='passToApp', payload=payload)
+
+    if isinstance(rsp, (unicode, str)):
+        rsp = json.loads(rsp)
+
+    return rsp
+
+
+def import_file_in_maya(file_path, maya_version=None):
+    """
+    Import the given asset path in the given Maya version current scene
+    :param file_path: str
+    :param maya_version: int
+    """
+
+    if not tp.is_maya():
+        return None
+
+    if maya_version is None:
+        maya_version = tp.Dcc.get_version()
+
+    spigot = get_artella_client()
+
+    payload = dict()
+    payload['appId'] = "maya.{0}".format(str(maya_version))
+    payload['message'] = "{\"CommandName\":\"import\"," \
+                         "\"CommandArgs\":{\"path\":\"" + file_path + "\"}}".replace('\\', '/')
+    payload['message'] = payload['message'].replace('\\', '/').replace('//', '/')
+    payload = json.dumps(payload)
+
+    rsp = spigot.execute(command_action='do', command_name='passToApp', payload=payload)
+
+    if isinstance(rsp, (unicode, str)):
+        rsp = json.loads(rsp)
+
+    return rsp
+
+
+def reference_file_in_maya(file_path, maya_version=None):
+    """
+    Import the given asset path in the given Maya version current scene
+    :param file_path: str
+    :param maya_version: int
+    """
+
+    if not tp.is_maya():
+        return None
+
+    if maya_version is None:
+        maya_version = tp.Dcc.get_version()
+
+    spigot = get_artella_client()
+
+    payload = dict()
+    payload['appId'] = "maya.{0}".format(str(maya_version))
+    payload['message'] = "{\"CommandName\":\"reference\"," \
+                         "\"CommandArgs\":{\"path\":\"" + file_path + "\"}}".replace('\\', '/')
+    payload['message'] = payload['message'].replace('\\', '/').replace('//', '/')
+    payload = json.dumps(payload)
+
+    rsp = spigot.execute(command_action='do', command_name='passToApp', payload=payload)
+
+    if isinstance(rsp, (unicode, str)):
+        rsp = json.loads(rsp)
+
+    return rsp
+
+
+def is_published(file_path):
+    """
+    Returns whether an absolute file path refers to a published asset
+    :param file_path: str, absolute path to a file
+    :return: bool
+    """
+
+    rsp = get_status(file_path=file_path, as_json=True)
+    if not rsp:
+        return False
+
+    meta = rsp.get('meta', {})
+    if meta.get('status') != 'OK':
+        LOGGER.info('Status is not OK: {}'.format(meta))
+        return False
+
+    return 'release_name' in meta
+
+
+def is_updated(file_path):
+    """
+    Returns whether or not given file path is updated to the last version
+    :param file_path: str
+    :return: bool
+    """
+
+    rsp = get_status(file_path=file_path)
+    if rsp:
+        if isinstance(rsp, artellaclasses.ArtellaDirectoryMetaData):
+            is_updated = False
+            if rsp.header.status != 'OK':
+                LOGGER.info('Status is not OK: {}'.format(rsp))
+                return False
+            for name, ref in rsp.references.items():
+                if ref.view_version < ref.maximum_version:
+                    return False
+                else:
+                    is_updated = True
+            return is_updated
+        elif isinstance(rsp, artellaclasses.ArtellaReferencesMetaData):
+            return rsp.view_version < rsp.maximum_version
+        else:
+            # We return None in files that are only in local (not in server)
+            return None
+
+    return False
+
+
+def is_locked(file_path):
+    """
+    Returns whether an absolute file path refers to a locked asset in edit mode, and if the file is locked
+    by the current storage workspace
+    :param file_path: str, absolute path to a file
+    :return: (bool, bool), Whether file is locked or not, whether the file is locked by another user or not
+    """
+
+    rsp = get_status(file_path=file_path)
+    if rsp:
+        if isinstance(rsp, artellaclasses.ArtellaDirectoryMetaData):
+            if rsp.header.status != 'OK':
+                LOGGER.info('Status is not OK: {}'.format(rsp))
+                return False, False
+
+            file_path = rsp.header.file_path or ''
+            if not file_path or file_path == '':
+                LOGGER.info('File path not found in response: {}'.format(rsp))
+                return False, False
+
+            for ref, ref_data in rsp.references.items():
+                file_data = ref_data.path
+                if not file_data:
+                    LOGGER.info('File data not found in response: {}'.format(rsp.get('data', {}), ))
+                    return
+                if ref_data.locked:
+                    user_id = get_current_user_id()
+                    return True, user_id == ref_data.locked_view
+        elif isinstance(rsp, artellaclasses.ArtellaHeaderMetaData):
+            if rsp.status != 'OK':
+                LOGGER.info('Status is not OK: {}'.format(rsp))
+                return False, False
+
+            file_path_header = rsp.file_path or ''
+            if not file_path_header or file_path_header == '':
+                LOGGER.info('File path not found in response: {}'.format(rsp))
+                return False, False
+
+            # This happens when we are trying to lock a file that has not been uploaded to Artella yet
+            return None, None
+
+    return False, False
+
+
+def lock_file(file_path=None, force=False):
+    """
+    Locks given file path
+    :param file_path: str
+    :param force: bool
+    """
+
+    if not file_path:
+        file_path = tp.Dcc.scene_name()
+    if not file_path:
+        LOGGER.error('File {} cannot be locked because it does not exists!'.format(file_path))
+        return False
+
+    file_published = is_published(file_path=file_path)
+    if file_published:
+        msg = 'Current file ({}) is published and cannot be edited'.format(os.path.basename(file_path))
+        LOGGER.info(msg)
+        if hasattr(artellapipe, 'project') and artellapipe.project:
+            artellapipe.project.message(msg)
+        return False
+
+    in_edit_mode, is_locked_by_me = is_locked(file_path=file_path)
+    can_write = os.access(file_path, os.W_OK)
+    if not can_write and is_locked_by_me:
+        msg = 'Unable to check local write permissions for file: {}'.format(file_path)
+        LOGGER.info(msg)
+        if hasattr(artellapipe, 'project') and artellapipe.project:
+            artellapipe.project.message(msg)
+
+    if in_edit_mode is None and is_locked_by_me is None:
+        msg = 'File is not versioned yet! '
+        LOGGER.info(msg)
+        return True
+
+    if in_edit_mode and not is_locked_by_me:
+        msg = 'Locked by another user or workspace or file is not uploaded to Artella yet: {}'.format(
+            os.path.basename(file_path))
+        LOGGER.info(msg)
+        tp.Dcc.warning(msg)
+        return False
+    elif force or not in_edit_mode:
+        result = 'Yes'
+        if not force and not in_edit_mode:
+            msg = '{} needs to be in Edit mode to save your file. Would like to turn edit mode on now?'.format(
+                os.path.basename(file_path))
+            LOGGER.info(msg)
+            if artellapipe.project:
+                artellapipe.project.message(msg)
+            result = tp.Dcc.confirm_dialog(
+                title='Artella Pipeline - Lock File',
+                message=msg, button=['Yes', 'No'], cancel_button='No', dismiss_string='No')
+        if result != 'Yes':
+            return False
+
+    spigot = get_artella_client()
+    payload = dict()
+    payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
+    payload = json.dumps(payload)
+
+    rsp = spigot.execute(command_action='do', command_name='checkout', payload=payload)
+
+    if isinstance(rsp, (unicode, str)):
+        rsp = json.loads(rsp)
+
+    LOGGER.debug('Server checkout response: {}'.format(rsp))
+
+    if rsp.get('meta', {}).get('status') != 'OK':
+        msg = 'Failed to lock {}'.format(os.path.basename(file_path))
+        LOGGER.info(msg)
+        tp.Dcc.warning(msg)
+        return False
+
+    return True
+
+
+def unlock_file(file_path, **kwargs):
+    """
+    Unlocks a given file path
+    :param file_path:
+    """
+
+    spigot = get_artella_client()
+    payload = dict()
+    payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
+    payload = json.dumps(payload)
+
+    if not can_unlock(file_path=file_path):
+        LOGGER.debug('Impossible to unlock file. File is locked by other user!')
+        return False
+
+    rsp = spigot.execute(command_action='do', command_name='unlock', payload=payload)
+
+    if isinstance(rsp, (unicode, str)):
+        rsp = json.loads(rsp)
+
+    # if rsp.get('status', {}).get('meta', {}).get('status') != 'OK':
+
+    if rsp:
+        if rsp.get('meta', {}).get('status') != 'OK':
+            msg = 'Failed to unlock {}'.format(os.path.basename(file_path))
+            LOGGER.info(msg)
+            return False
+    else:
+        return False
+
+    return True
+
+
+def upload_file(file_path, comment):
+    """
+    Uploads a new version of the given file to Artella server
+    :param file_path: str
+    :param comment: str
+    """
+
+    spigot = get_artella_client()
+    payload = dict()
+    cms_uri = artella_lib.artella.getCmsUri(file_path)
+    if not cms_uri.startswith('/'):
+        cms_uri = '/' + cms_uri
+    payload['cms_uri'] = cms_uri
+    payload['comment'] = comment
+    payload = json.dumps(payload)
+
+    rsp = spigot.execute(command_action='do', command_name='upload', payload=payload)
+    if isinstance(rsp, (str, unicode)):
+        rsp = json.loads(rsp)
+
+    if rsp.get('status', {}).get('meta', {}).get('status') != 'OK':
+        msg = 'Failed to publish version to Artella {}'.format(os.path.basename(file_path))
+        LOGGER.info(msg)
+        tp.Dcc.warning(msg)
+        tp.Dcc.confirm_dialog(
+            title='Artella Pipeline -  Failed to Upload Bug. Restart DCC please!', message=msg, button=['OK'])
+        return False
+
+    return True
+
+
+def get_current_user_id():
+    """
+    Returns Artella ID of the current user
+    :return: str
+    """
+
+    metadata = get_metadata()
+    if not metadata:
+        return None
+    return metadata.storage_id
+
+
+def can_unlock(file_path, **kwargs):
+    """
+    Returns whether given path can be unlocked or not by current user
+    :param file_path: str
+    :return: bool
+    """
+
+    asset_status = get_status(file_path=file_path)
+    if not asset_status:
+        return False
+
+    if type(asset_status) == artellaclasses.ArtellaHeaderMetaData:
+        LOGGER.debug('File {} is not uploaded on Artella yet, so you cannot unlock it!')
+        return False
+
+    asset_info = asset_status.references.values()[0]
+    locker_name = asset_info.locked_view
+    user_id = get_current_user_id()
+
+    if locker_name is not None and locker_name != user_id:
+        return False
+
+    return True
+
+
+def upload_new_asset_version(file_path=None, comment='Published new version with Artella Pipeline', skip_saving=False):
+    """
+    Adds a new file to the Artella server
+    :param file_path:
+    :param comment:
+    :param skip_saving: When we publish textures we do not want to save the maya scene
+    """
+
+    if not file_path:
+        file_path = tp.Dcc.scene_name()
+    if not file_path:
+        LOGGER.error('File {} cannot be locked because it does not exists!'.format(file_path))
+        return False
+
+    msg = 'Making new version for {}'.format(file_path)
+    LOGGER.info(msg)
+    if artellapipe.project:
+        artellapipe.project.message(msg)
+    if file_path is not None and file_path != '':
+        valid_lock = lock_file(file_path=file_path)
+        if not valid_lock:
+            return False
+
+        if not skip_saving:
+            if tp.Dcc.scene_is_modified():
+                tp.Dcc.save_current_scene(force=True)
+            if tp.is_maya():
+                from tpDcc.dccs.maya.core import helpers
+                if helpers.file_has_student_line(filename=file_path):
+                    helpers.clean_student_line(filename=file_path)
+                    if helpers.file_has_student_line(filename=file_path):
+                        LOGGER.error('After updating model path the Student License could not be fixed again!')
+                        return False
+
+        msg = 'Saving new file version on Artella Server: {}'.format(file_path)
+        LOGGER.info(msg)
+        if artellapipe.project:
+            artellapipe.project.message(msg)
+        if comment is None:
+            result = tp.Dcc.confirm_dialog(
+                title='Artella Pipeline - Save New Version on Artella Server', message=msg, button=['Save', 'Cancel'],
+                cancel_button='Cancel', dismiss_string='Cancel')
+            if result == 'Save':
+                comment = qtutils.get_comment(title='Comment')
+            else:
+                return False
+
+        spigot = get_artella_client()
+        payload = dict()
+        cms_uri = artella_lib.artella.getCmsUri(file_path)
+        if not cms_uri.startswith('/'):
+            cms_uri = '/' + cms_uri
+        payload['cms_uri'] = cms_uri
+        payload['comment'] = comment
+        payload = json.dumps(payload)
+
+        rsp = spigot.execute(command_action='do', command_name='upload', payload=payload)
+        if isinstance(rsp, (unicode, str)):
+            rsp = json.loads(rsp)
+
+        if 'status' in rsp and 'meta' in rsp['status'] and rsp['status']['meta']['status'] != 'OK':
+            LOGGER.info('Make new version response: {}'.format(rsp))
+            msg = 'Failed to make new version of {}'.format(os.path.basename(file_path))
+
+            tp.Dcc.confirm_dialog(title='Artella Pipeline - Failed to Make New Version', message=msg, button=['Ok'])
+            return False
+
+        unlock_file(file_path=file_path)
+
+    else:
+        msg = 'The file has not been created yet'
+        LOGGER.debug(msg)
+        tp.Dcc.warning(msg)
+        tp.Dcc.confirm_dialog(title='Artella Pipeline - Failed to Make New Version', message=msg, button=['Ok'])
+
+    return True
+
+
+def publish_asset(asset_path, comment, selected_versions, version_name):
+    """
+    Publish a new version of the given asset
+    :param asset_path:
+    :param comment:
+    :param selected_versions:
+    :param version_name:
+    """
+
+    spigot = get_artella_client()
+    payload = dict()
+    payload['cms_uri'] = '/' + artella_lib.artella.getCmsUri(asset_path) + '/' + version_name
+    payload['comment'] = comment
+    payload['selectedVersions'] = selected_versions
+    payload = json.dumps(payload)
+
+    rsp = spigot.execute(command_action='do', command_name='createRelease', payload=payload)
+
+    if isinstance(rsp, (unicode, str)):
+        rsp = json.loads(rsp)
+
+    return rsp
+
+
+def get_local_working_version(file_path):
+    """
+    Returns current version of the given file in Artella server
+    :param file_path: str
+    :return: int
+    """
+
+    if not file_path or not os.path.exists(file_path):
+        return -1
+
+    history = get_file_history(file_path)
+    file_versions = history.versions
+    if not file_versions:
+        current_version = 0
+    else:
+        current_version = 0
+        for v in file_versions:
+            if int(v[0]) > current_version:
+                current_version = int(v[0])
+
+    return current_version
+
+
+def get_current_version(file_path):
+    """
+    Returns current published version of the given file path in Artella server
+    :param file_path: str
+    :return: int
+    """
+
+    current_versions = dict()
+
+    rsp = get_status(file_path=file_path)
+    if rsp:
+        if isinstance(rsp, artellaclasses.ArtellaDirectoryMetaData):
+            if rsp.header.status != 'OK':
+                LOGGER.info('Status is not OK: {}'.format(rsp))
+                return False
+            for name, ref in rsp.references.items():
+                if ref.view_version is not None:
+                    current_versions[ref.name] = ref.view_version
+                else:
+                    current_versions[ref.name] = 0
+        elif isinstance(rsp, artellaclasses.ArtellaReferencesMetaData):
+            current_versions[rsp.name] = rsp.view_version
+        elif isinstance(rsp, artellaclasses.ArtellaAssetMetaData):
+            current_versions = rsp.get_published_versions()
+        else:
+            return current_versions
+
+    return current_versions
+
+
+def get_latest_version(file_path, check_validity=True):
+    """
+    Returns last version of the given file path in Artella server
+    :param file_path: str
+    :param check_validity: bool
+    :return: int
+    """
+
+    maximum_versions = dict()
+
+    rsp = get_status(file_path=file_path)
+    if rsp:
+        if isinstance(rsp, artellaclasses.ArtellaDirectoryMetaData):
+            if rsp.header.status != 'OK':
+                LOGGER.info('Status is not OK: {}'.format(rsp))
+                return False
+            for name, ref in rsp.references.items():
+                maximum_versions[ref.name] = ref.maximum_version
+        elif isinstance(rsp, artellaclasses.ArtellaReferencesMetaData):
+            maximum_versions[rsp.name] = rsp.maximum_version
+        elif isinstance(rsp, artellaclasses.ArtellaAssetMetaData):
+            maximum_versions = dict()
+            published_versions = rsp.get_published_versions(check_validity=check_validity)
+            for file_name_version, info_version in published_versions.items():
+                if not file_name_version.startswith('__'):
+                    file_name_version = '__{}'.format(file_name_version)
+                if not file_name_version.endswith('__'):
+                    file_name_version = '{}__'.format(file_name_version)
+                file_version = split_version(file_name_version)
+                file_name = file_name_version.replace(file_version[0], '').replace('__', '')
+                if file_name not in maximum_versions:
+                    maximum_versions[file_name] = 0
+                if file_version[1] > maximum_versions[file_name]:
+                    maximum_versions[file_name] = file_version[1]
+        else:
+            return maximum_versions
+
+    return maximum_versions
+
+
+def within_artella_scene():
+    """
+    Returns True if the current Maya scene corresponds to a Artella Maya scene
+    :return: bool
+    """
+
+    current_scene = tp.Dcc.scene_name() or 'untitled'
+    LOGGER.debug('Current scene name: {}'.format(current_scene))
+    if 'artella' not in current_scene.lower():
+        return False
+    return True
+
+
+def get_user_avatar(user_id):
+    """
+    Downloads from Artella the avatar of the given user id
+    Only works if the user is loaded before to Artella
+    :param user_id: str
+    :return:
+    """
+
+    project_type = artellapipe.project.get_project_type()
+    artella_cms_url = artella_lib.config.get('server', project_type).get('cms_url')
+    manager = HTTPPasswordMgrWithDefaultRealm()
+    manager.add_password(None, artella_cms_url, 'default', 'default')
+    auth = HTTPBasicAuthHandler(manager)
+    opener = build_opener(auth)
+    install_opener(opener)
+    response = urlopen('{0}/profile/{1}/avatarfull.img'.format(artella_cms_url, user_id))
+
+    return response
+
+
+def get_dependencies(file_path):
+    """
+    Returns a list with all the dependencies
+    :param file_path: str
+    :return: dict
+    """
+
+    if not file_path:
+        file_path = tp.Dcc.scene_name()
+    if not file_path:
+        LOGGER.error('File {} cannot be locked because it does not exists!'.format(file_path))
+        return False
+
+    if file_path is not None and file_path != '':
+        spigot = get_artella_client()
+        payload = dict()
+        payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
+        payload = json.dumps(payload)
+
+        rsp = spigot.execute(command_action='do', command_name='getDependencies', payload=payload)
+
+        if isinstance(rsp, (unicode, str)):
+            rsp = json.loads(rsp)
+
+        return rsp
+
+    return None
+
+
+def create_asset(asset_name, asset_path):
+    """
+    Creates an asset with given name and in given path
+    :param asset_name: str
+    :param asset_path: str
+    :return: dict
+    """
+
+    full_path = os.path.join(asset_path, asset_name)
+    if os.path.exists(full_path):
+        LOGGER.warning('Impossible to create already existing asset!')
+        return False
+
+    spigot = get_artella_client()
+    payload = dict()
+    payload['cms_uri'] = artella_lib.artella.getCmsUri(full_path)
+    payload = json.dumps(payload)
+
+    rsp = spigot.execute(command_action='do', command_name='createContainer', payload=payload)
+
+    if isinstance(rsp, (unicode, str)):
+        rsp = json.dumps(rsp)
+
+    return rsp
+
+
+def delete_file(file_path):
+    """
+    Removes given file from Artella server
+    :param file_path: str
+    :return: dict
+    """
+
+    spigot = get_artella_client()
+    payload = dict()
+    payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
+    payload = json.dumps(payload)
+
+    rsp = spigot.execute(command_action='do', command_name='delete', payload=payload)
+
+    if isinstance(rsp, (unicode, str)):
+        rsp = json.dumps(rsp)
+
+    return rsp
+
+
+def rename_file(file_path, new_name):
+    """
+    Renames given file with new given name
+    :param file_path: str
+    :param new_name: str
+    """
+
+    res = qtutils.show_question(
+        None, 'Confirm Rename',
+        'Are you you would like to rename "{}" to "{}"?Any references to this file will need to be updated.'.format(
+            os.path.basename(file_path), new_name))
+    if res != QMessageBox.Yes:
+        return
+
+    dir_name = os.path.dirname(file_path)
+    file_ext = os.path.splitext(file_path)[-1]
+    if file_ext:
+        if not new_name.endswith(file_ext):
+            new_name += file_ext
+    else:
+        file_ext = os.path.splitext(file_path)[-1]
+        if file_ext:
+            new_name = file_ext[0]
+    new_path = os.path.join(dir_name, new_name)
+
+    spigot = get_artella_client()
+    payload = dict()
+    payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
+    payload['dst_uri'] = artella_lib.artella.getCmsUri(new_path)
+    payload = json.dumps(payload)
+
+    rsp = spigot.execute(command_action='do', command_name='rename', payload=payload)
+
+    if isinstance(rsp, (unicode, str)):
+        rsp = json.dumps(rsp)
+
+    return rsp
+
+
+def new_folder(root_path, folder_name):
+    """
+    Creates a new folder in the given path
+    :param root_path: str
+    :param folder_name: str
+    """
+
+    if not folder_name:
+        folder_name = qtutils.get_string_input('Folder Name', 'Create Folder')
+        if not folder_name:
+            return
+
+    file_path = os.path.join(root_path, folder_name)
+
+    spigot = get_artella_client()
+    payload = dict()
+    payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
+    payload['new_folder'] = True
+    payload = json.dumps(payload)
+
+    rsp = spigot.execute(command_action='do', command_name='upload', payload=payload)
+
+    if isinstance(rsp, (unicode, str)):
+        rsp = json.dumps(rsp)
+
+    return rsp
