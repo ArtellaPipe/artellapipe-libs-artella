@@ -277,7 +277,11 @@ def is_updated(file_path):
     :return: bool
     """
 
-    return False
+    client = get_artella_client()
+
+    file_is_latest_version = client.file_is_latest_version(file_path)
+
+    return file_is_latest_version
 
 
 def is_locked(file_path):
@@ -411,13 +415,14 @@ def upload_new_asset_version(file_path=None, comment='Published new version with
         if not skip_saving:
             if tp.Dcc.scene_is_modified():
                 tp.Dcc.save_current_scene(force=True)
-            if tp.is_maya():
-                from tpDcc.dccs.maya.core import helpers
+
+        if tp.is_maya():
+            from tpDcc.dccs.maya.core import helpers
+            if helpers.file_has_student_line(filename=file_path):
+                helpers.clean_student_line(filename=file_path)
                 if helpers.file_has_student_line(filename=file_path):
-                    helpers.clean_student_line(filename=file_path)
-                    if helpers.file_has_student_line(filename=file_path):
-                        LOGGER.error('After updating model path the Student License could not be fixed again!')
-                        return False
+                    LOGGER.error('After updating model path the Student License could not be fixed again!')
+                    return False
 
         msg = 'Saving new file version on Artella Server: {}'.format(file_path)
         LOGGER.info(msg)
