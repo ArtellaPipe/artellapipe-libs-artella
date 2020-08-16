@@ -482,3 +482,333 @@ def get_artella_project_url(project_id, files_url=True):
     """
 
     raise RuntimeError('get_artella_project_url function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def split_version(name, next_version=False):
+    """
+    Returns the version of a specific given asset (model_v001, return [v001, 001, 1])
+    :param name: str
+    :param next_version: bool
+    :return: list(str, int, int)
+    """
+
+    raise RuntimeError('split_version function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def get_file_history(file_path, as_json=False):
+    """
+    Returns the history info of the given file, if exists
+    :param file_path: str
+    :param as_json: bool
+    """
+
+    raise RuntimeError('get_file_history function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def get_asset_image(asset_path, project_id):
+    """
+    Returns the asset image from Artella server
+    :param asset_path: str, path of the asset relative to the Assets folder
+    :param project_id: str, ID of the Artella project you are currently working
+    :return:
+    """
+
+    raise RuntimeError('get_asset_image function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def launch_maya(file_path, maya_version=None):
+    """
+    :param file_path: str
+    :param maya_version: int
+    :return:
+    """
+
+    raise RuntimeError('launch_maya function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def open_file_in_maya(file_path, maya_version=None):
+    """
+    Open the given path in the given Maya version
+    :param file_path: str
+    :param maya_version: int
+    """
+
+    raise RuntimeError('open_file_in_maya function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def import_file_in_maya(file_path, maya_version=None):
+    """
+    Import the given asset path in the given Maya version current scene
+    :param file_path: str
+    :param maya_version: int
+    """
+
+    raise RuntimeError('import_file_in_maya function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def reference_file_in_maya(file_path, maya_version=None):
+    """
+    Import the given asset path in the given Maya version current scene
+    :param file_path: str
+    :param maya_version: int
+    """
+
+    raise RuntimeError('reference_file_in_maya function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def is_published(file_path):
+    """
+    Returns whether an absolute file path refers to a published asset
+    :param file_path: str, absolute path to a file
+    :return: bool
+    """
+
+    raise RuntimeError('is_published function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def is_updated(file_path):
+    """
+    Returns whether or not given file path is updated to the last version
+    :param file_path: str
+    :return: bool
+    """
+
+    raise RuntimeError('is_updated function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def is_locked(file_path):
+    """
+    Returns whether an absolute file path refers to a locked asset in edit mode, and if the file is locked
+    by the current storage workspace
+    :param file_path: str, absolute path to a file
+    :return: (bool, bool), Whether file is locked or not, whether the file is locked by another user or not
+    """
+
+    raise RuntimeError('is_locked function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def lock_file(file_path=None, force=False):
+    """
+    Locks given file path
+    :param file_path: str
+    :param force: bool
+    """
+
+    raise RuntimeError('lock_file function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def upload_file(file_path, comment):
+    """
+    Uploads a new version of the given file to Artella server
+    :param file_path: str
+    :param comment: str
+    """
+
+    raise RuntimeError('upload_file function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def get_current_user_id():
+    """
+    Returns Artella ID of the current user
+    :return: str
+    """
+
+    raise RuntimeError('get_current_user_id function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def can_unlock(file_path, **kwargs):
+    """
+    Returns whether given path can be unlocked or not by current user
+    :param file_path: str
+    :return: bool
+    """
+
+    raise RuntimeError('can_unlock function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def unlock_file(file_path, **kwargs):
+    """
+    Unlocks a given file path
+    :param file_path:
+    """
+
+    raise RuntimeError('unlock_file function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def upload_new_asset_version(file_path=None, comment='Published new version with Artella Pipeline', skip_saving=False):
+    """
+    Adds a new file to the Artella server
+    :param file_path:
+    :param comment:
+    :param skip_saving: When we publish textures we do not want to save the maya scene
+    """
+
+    raise RuntimeError('upload_new_asset_version function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def publish_asset(asset_path, comment, selected_versions, version_name):
+    """
+    Publish a new version of the given asset
+    :param asset_path:
+    :param comment:
+    :param selected_versions:
+    :param version_name:
+    """
+
+    raise RuntimeError('publish_asset function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def get_local_working_version(file_path):
+    """
+    Returns current version of the given file in Artella server
+    :param file_path: str
+    :return: int
+    """
+
+    raise RuntimeError('get_local_working_version function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def get_current_version(file_path):
+    """
+    Returns current published version of the given file path in Artella server
+    :param file_path: str
+    :return: int
+    """
+
+    raise RuntimeError('get_current_version function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def get_latest_version(file_path, check_validity=True):
+    """
+    Returns last version of the given file path in Artella server
+    :param file_path: str
+    :param check_validity: bool
+    :return: int
+    """
+
+    raise RuntimeError('get_latest_version function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def within_artella_scene():
+    """
+    Returns True if the current Maya scene corresponds to a Artella Maya scene
+    :return: bool
+    """
+
+    raise RuntimeError('within_artella_scene function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def get_user_avatar(user_id):
+    """
+    Downloads from Artella the avatar of the given user id
+    Only works if the user is loaded before to Artella
+    :param user_id: str
+    :return:
+    """
+
+    raise RuntimeError('get_user_avatar function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def get_dependencies(file_path):
+    """
+    Returns a list with all the dependencies
+    :param file_path: str
+    :return: dict
+    """
+
+    raise RuntimeError('get_dependencies function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def create_asset(asset_name, asset_path):
+    """
+    Creates an asset with given name and in given path
+    :param asset_name: str
+    :param asset_path: str
+    :return: dict
+    """
+
+    raise RuntimeError('create_asset function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def delete_file(file_path):
+    """
+    Removes given file from Artella server
+    :param file_path: str
+    :return: dict
+    """
+
+    raise RuntimeError('delete_file function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def rename_file(file_path, new_name):
+    """
+    Renames given file with new given name
+    :param file_path: str
+    :param new_name: str
+    """
+
+    raise RuntimeError('rename_file function not implemented in Artella Abstract API!')
+
+
+@reroute
+@decorators.abstractmethod
+def new_folder(root_path, folder_name):
+    """
+    Creates a new folder in the given path
+    :param root_path: str
+    :param folder_name: str
+    """
+
+    raise RuntimeError('new_folder function not implemented in Artella Abstract API!')
