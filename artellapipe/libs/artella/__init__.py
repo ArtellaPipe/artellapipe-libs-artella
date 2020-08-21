@@ -14,5 +14,3 @@ def init(dev=False):
     """
 
     artellalib.init_artella(dev=dev)
-
-
