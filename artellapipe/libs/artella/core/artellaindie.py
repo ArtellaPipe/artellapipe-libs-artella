@@ -5,6 +5,13 @@
 Module that contains Artella Indie API implementation
 """
 
+from __future__ import print_function, division, absolute_import
+
+__author__ = "Tomas Poveda"
+__license__ = "MIT"
+__maintainer__ = "Tomas Poveda"
+__email__ = "tpovedatd@gmail.com"
+
 import os
 import re
 import sys
@@ -41,6 +48,9 @@ spigot_thread = None
 try:
     import Artella as art
     getCmsUri = art.getCmsUri
+    handleMessage = art.handleMessage
+    passMsgToMainThread = art.passMsgToMainThread
+
 except ImportError:
 
     def getCmsUri(broken_path):
@@ -51,6 +61,12 @@ except ImportError:
                 relative_path = '/'.join(path_parts)
                 return relative_path
         return ''
+
+    def handleMessage(json_msg):
+        pass
+
+    def passMsgToMainThread(json_msg):
+        handleMessage(json_msg)
 
 # =================================================================================================================
 
@@ -272,7 +288,7 @@ def connect_artella_app_to_spigot(cli=None, app_identifier=None):
             except Exception:
                 LOGGER.warning('Unknown command!')
         else:
-            return artella_lib.artella.handleMessage(json_msg)
+            return handleMessage(json_msg)
 
     if cli is None:
         cli = get_artella_client()
@@ -282,7 +298,7 @@ def connect_artella_app_to_spigot(cli=None, app_identifier=None):
         artella_app_identifier = app_identifier
 
     if tp.is_maya():
-        pass_msg_fn = artella_lib.artella.passMsgToMainThread
+        pass_msg_fn = passMsgToMainThread
     elif tp.is_houdini():
         def pass_msg_to_main_thread(json_msg):
             from tpDcc.dccs.houdini.core import helpers
@@ -1032,7 +1048,7 @@ def lock_file(file_path=None, force=False):
 
     spigot = get_artella_client()
     payload = dict()
-    payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
+    payload['cms_uri'] = getCmsUri(file_path)
     payload = json.dumps(payload)
 
     rsp = spigot.execute(command_action='do', command_name='checkout', payload=payload)
@@ -1059,7 +1075,7 @@ def unlock_file(file_path, **kwargs):
 
     spigot = get_artella_client()
     payload = dict()
-    payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
+    payload['cms_uri'] = getCmsUri(file_path)
     payload = json.dumps(payload)
 
     if not can_unlock(file_path=file_path):
@@ -1093,7 +1109,7 @@ def upload_file(file_path, comment):
 
     spigot = get_artella_client()
     payload = dict()
-    cms_uri = artella_lib.artella.getCmsUri(file_path)
+    cms_uri = getCmsUri(file_path)
     if not cms_uri.startswith('/'):
         cms_uri = '/' + cms_uri
     payload['cms_uri'] = cms_uri
@@ -1201,7 +1217,7 @@ def upload_new_asset_version(file_path=None, comment='Published new version with
 
         spigot = get_artella_client()
         payload = dict()
-        cms_uri = artella_lib.artella.getCmsUri(file_path)
+        cms_uri = getCmsUri(file_path)
         if not cms_uri.startswith('/'):
             cms_uri = '/' + cms_uri
         payload['cms_uri'] = cms_uri
@@ -1241,7 +1257,7 @@ def publish_asset(asset_path, comment, selected_versions, version_name):
 
     spigot = get_artella_client()
     payload = dict()
-    payload['cms_uri'] = '/' + artella_lib.artella.getCmsUri(asset_path) + '/' + version_name
+    payload['cms_uri'] = '/' + getCmsUri(asset_path) + '/' + version_name
     payload['comment'] = comment
     payload['selectedVersions'] = selected_versions
     payload = json.dumps(payload)
@@ -1396,7 +1412,7 @@ def get_dependencies(file_path):
     if file_path is not None and file_path != '':
         spigot = get_artella_client()
         payload = dict()
-        payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
+        payload['cms_uri'] = getCmsUri(file_path)
         payload = json.dumps(payload)
 
         rsp = spigot.execute(command_action='do', command_name='getDependencies', payload=payload)
@@ -1424,7 +1440,7 @@ def create_asset(asset_name, asset_path):
 
     spigot = get_artella_client()
     payload = dict()
-    payload['cms_uri'] = artella_lib.artella.getCmsUri(full_path)
+    payload['cms_uri'] = getCmsUri(full_path)
     payload = json.dumps(payload)
 
     rsp = spigot.execute(command_action='do', command_name='createContainer', payload=payload)
@@ -1444,7 +1460,7 @@ def delete_file(file_path):
 
     spigot = get_artella_client()
     payload = dict()
-    payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
+    payload['cms_uri'] = getCmsUri(file_path)
     payload = json.dumps(payload)
 
     rsp = spigot.execute(command_action='do', command_name='delete', payload=payload)
@@ -1482,8 +1498,8 @@ def rename_file(file_path, new_name):
 
     spigot = get_artella_client()
     payload = dict()
-    payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
-    payload['dst_uri'] = artella_lib.artella.getCmsUri(new_path)
+    payload['cms_uri'] = getCmsUri(file_path)
+    payload['dst_uri'] = getCmsUri(new_path)
     payload = json.dumps(payload)
 
     rsp = spigot.execute(command_action='do', command_name='rename', payload=payload)
@@ -1510,7 +1526,7 @@ def new_folder(root_path, folder_name):
 
     spigot = get_artella_client()
     payload = dict()
-    payload['cms_uri'] = artella_lib.artella.getCmsUri(file_path)
+    payload['cms_uri'] = getCmsUri(file_path)
     payload['new_folder'] = True
     payload = json.dumps(payload)
 
