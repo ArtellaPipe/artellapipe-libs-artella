@@ -179,6 +179,13 @@
 <span id="artellapipe-libs-artella-core-artellaenterprise-module"></span><h1>artellapipe.libs.artella.core.artellaenterprise module<a class="headerlink" href="#module-artellapipe.libs.artella.core.artellaenterprise" title="Permalink to this headline">¶</a></h1>
 <p>Module that contains Artella Enterprise API implementation</p>
 <dl class="py function">
+<dt id="artellapipe.libs.artella.core.artellaenterprise.can_unlock">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellaenterprise.</code><code class="sig-name descname">can_unlock</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_path</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellaenterprise.can_unlock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether given path can be unlocked or not by current user
+:param file_path: str</p>
+</dd></dl>
+
+<dl class="py function">
 <dt id="artellapipe.libs.artella.core.artellaenterprise.get_artella_client">
 <code class="sig-prename descclassname">artellapipe.libs.artella.core.artellaenterprise.</code><code class="sig-name descname">get_artella_client</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">app_identifier</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">force_create</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellaenterprise.get_artella_client" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates, connects and returns an instance of the Spigot client
@@ -186,10 +193,43 @@
 </dd></dl>
 
 <dl class="py function">
+<dt id="artellapipe.libs.artella.core.artellaenterprise.get_artella_project_url">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellaenterprise.</code><code class="sig-name descname">get_artella_project_url</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">project_id</span></em>, <em class="sig-param"><span class="n">files_url</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellaenterprise.get_artella_project_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns Artella project URL
+:param project_id: str, Unique ID for the Artella project
+:param files_url: bool, Whether to return root project URL of project files URL
+:return: str</p>
+</dd></dl>
+
+<dl class="py function">
 <dt id="artellapipe.libs.artella.core.artellaenterprise.get_artella_python_folder">
 <code class="sig-prename descclassname">artellapipe.libs.artella.core.artellaenterprise.</code><code class="sig-name descname">get_artella_python_folder</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellaenterprise.get_artella_python_folder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns folder where Artella stores Python scripts
 :return: str</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="artellapipe.libs.artella.core.artellaenterprise.get_current_version">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellaenterprise.</code><code class="sig-name descname">get_current_version</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_path</span></em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellaenterprise.get_current_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns current published version of the given file path in Artella server
+:param file_path: str
+:return: int</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="artellapipe.libs.artella.core.artellaenterprise.get_file_history">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellaenterprise.</code><code class="sig-name descname">get_file_history</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_path</span></em>, <em class="sig-param"><span class="n">as_json</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellaenterprise.get_file_history" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the history info of the given file, if exists
+:param file_path: str
+:param as_json: bool</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="artellapipe.libs.artella.core.artellaenterprise.get_local_working_version">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellaenterprise.</code><code class="sig-name descname">get_local_working_version</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_path</span></em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellaenterprise.get_local_working_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns current version of the given file in Artella server
+:param file_path: str
+:return: int</p>
 </dd></dl>
 
 <dl class="py function">
@@ -234,6 +274,39 @@ Returns a tuple containing the following info:</p>
 <dd></dd></dl>
 
 <dl class="py function">
+<dt id="artellapipe.libs.artella.core.artellaenterprise.is_locked">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellaenterprise.</code><code class="sig-name descname">is_locked</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_path</span></em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellaenterprise.is_locked" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether an absolute file path refers to a locked asset in edit mode, and if the file is locked
+by the current storage workspace
+:param file_path: str, absolute path to a file
+:return: (bool, bool), Whether file is locked or not, whether the file is locked by another user or not</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="artellapipe.libs.artella.core.artellaenterprise.is_published">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellaenterprise.</code><code class="sig-name descname">is_published</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_path</span></em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellaenterprise.is_published" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether an absolute file path refers to a published asset
+:param file_path: str, absolute path to a file
+:return: bool</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="artellapipe.libs.artella.core.artellaenterprise.is_updated">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellaenterprise.</code><code class="sig-name descname">is_updated</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_path</span></em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellaenterprise.is_updated" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether or not given file path is updated to the last version
+:param file_path: str
+:return: bool</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="artellapipe.libs.artella.core.artellaenterprise.lock_file">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellaenterprise.</code><code class="sig-name descname">lock_file</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">force</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellaenterprise.lock_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Locks given file path
+:param file_path: str
+:param force: bool</p>
+</dd></dl>
+
+<dl class="py function">
 <dt id="artellapipe.libs.artella.core.artellaenterprise.pause_synchronization">
 <code class="sig-prename descclassname">artellapipe.libs.artella.core.artellaenterprise.</code><code class="sig-name descname">pause_synchronization</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellaenterprise.pause_synchronization" title="Permalink to this definition">¶</a></dt>
 <dd><p>Pauses synchronization of files from Artella server</p>
@@ -271,10 +344,26 @@ Returns a tuple containing the following info:</p>
 </dd></dl>
 
 <dl class="py function">
+<dt id="artellapipe.libs.artella.core.artellaenterprise.unlock_file">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellaenterprise.</code><code class="sig-name descname">unlock_file</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_path</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellaenterprise.unlock_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unlocks a given file path
+:param file_path:</p>
+</dd></dl>
+
+<dl class="py function">
 <dt id="artellapipe.libs.artella.core.artellaenterprise.update_local_artella_root">
 <code class="sig-prename descclassname">artellapipe.libs.artella.core.artellaenterprise.</code><code class="sig-name descname">update_local_artella_root</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellaenterprise.update_local_artella_root" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates the environment variable that stores the Artella Local Path
 NOTE: This is done by Artella plugin when is loaded, so we should not do it manually again</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="artellapipe.libs.artella.core.artellaenterprise.upload_new_asset_version">
+<code class="sig-prename descclassname">artellapipe.libs.artella.core.artellaenterprise.</code><code class="sig-name descname">upload_new_asset_version</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">comment</span><span class="o">=</span><span class="default_value">'Published new version with Artella Pipeline'</span></em>, <em class="sig-param"><span class="n">skip_saving</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#artellapipe.libs.artella.core.artellaenterprise.upload_new_asset_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a new file to the Artella server
+:param file_path:
+:param comment:
+:param skip_saving: When we publish textures we do not want to save the maya scene</p>
 </dd></dl>
 
 </div>

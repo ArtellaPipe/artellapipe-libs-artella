@@ -1,7 +1,0 @@
-artellapipe.libs.artella.core.abstract module
-=============================================
-
-.. automodule:: artellapipe.libs.artella.core.abstract
-   :members:
-   :undoc-members:
-   :show-inheritance:
