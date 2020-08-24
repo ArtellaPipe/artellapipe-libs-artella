@@ -15,12 +15,15 @@ __email__ = "tpovedatd@gmail.com"
 import os
 import logging
 import traceback
+import subprocess
 from collections import OrderedDict
 
 import tpDcc as tp
+from tpDcc.libs.python import osplatform
 from tpDcc.libs.qt.core import qtutils
 
 import artellapipe
+from artellapipe.libs import artella as artella_lib
 from artellapipe.libs.artella.core import artellaclasses
 
 LOGGER = logging.getLogger('artellapipe-libs-artella')
@@ -33,6 +36,94 @@ def init(dev=False):
     import artella.loader
     artella.loader.shutdown(dev=dev, cleanup_modules=True)
     artella.loader.init(dev=dev, create_menu=False, create_callbacks=False)
+
+
+def get_artella_data_folder():
+    """
+    Returns last version Artella folder installation
+    :return: str
+    """
+
+    if osplatform.is_mac():
+        artella_folder = os.path.join(os.path.expanduser('~/Library/Application Support/'), 'Artella')
+    elif osplatform.is_windows():
+        artella_folder = os.path.join(os.getenv('ProgramFiles(x86)'), 'Artella')
+    else:
+        return None
+
+    LOGGER.debug('ARTELLA FOLDER: {}'.format(artella_folder))
+    if not os.path.exists(artella_folder):
+        qtutils.show_info(
+            None, 'Artella Folder not found!',
+            'Artella App Folder {} does not exists! Make sure that Artella is installed in your computer!')
+
+    return artella_folder
+
+
+def update_artella_paths():
+    """
+    Updates system path to add artella paths if they are not already added
+    :return:
+    """
+
+    return None
+
+
+def launch_artella_app():
+    """
+    Executes Artella App
+    """
+
+    if osplatform.is_mac():
+        artella_app_file = get_artella_app()
+    elif osplatform.is_windows():
+        artella_app_file = get_artella_app() + '.exe'
+    else:
+        qtutils.show_warning(
+            None,
+            'Platform not supported',
+            'Current platform is not supported by Artella App: {}'.format(osplatform.get_sys_platform())
+        )
+        return
+
+    artella_app_file = artella_app_file
+    LOGGER.info('Artella App File: {0}'.format(artella_app_file))
+
+    if os.path.isfile(artella_app_file):
+        LOGGER.info('Launching Artella App ...')
+        LOGGER.debug('Artella App File: {0}'.format(artella_app_file))
+
+        subprocess.Popen(
+            ['cmd.exe', '/C', artella_app_file.replace('\\', '//')],
+            stdin=subprocess.PIPE, stderr=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
+
+        # This will open Artella Drive with command window
+        # subprocess.Popen(
+        #     ['cmd.exe', '/C', artella_app_file.replace('\\', '//')],
+        #     creationflags=subprocess.CREATE_NEW_CONSOLE
+        # )
+
+
+def get_artella_app():
+    """
+    Returns path where Artella path is installed
+    :return: str
+    """
+
+    artella_app_name = artella_lib.config.get('app', 'enterprise').get('name')
+    if osplatform.is_windows():
+        artella_folder = get_artella_data_folder()
+        return os.path.join(artella_folder, artella_app_name)
+    elif osplatform.is_mac():
+        artella_folder = '/System/Applications'
+        return os.path.join(artella_folder, 'Artella Drive.app')
+    else:
+        qtutils.show_warning(
+            None,
+            'Platform not supported',
+            'Current platform is not supported by Artella App: {}'.format(osplatform.get_sys_platform())
+        )
+        return ''
 
 
 def update_local_artella_root():

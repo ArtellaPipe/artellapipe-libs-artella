@@ -110,7 +110,7 @@ def get_artella_data_folder():
     else:
         return None
 
-    next_version = artella_lib.config.get('app', 'next_version_filename')
+    next_version = artella_lib.config.get('app', 'indie').get('next_version_filename', '')
     artella_app_version = None
     version_file = os.path.join(artella_folder, next_version)
     if os.path.isfile(version_file):
@@ -187,10 +187,20 @@ def get_artella_app():
     :return: str
     """
 
-    artella_folder = os.path.dirname(get_artella_data_folder())
-    artella_app_name = artella_lib.config.get('app', 'name')
-
-    return os.path.join(artella_folder, artella_app_name)
+    artella_app_name = artella_lib.config.get('app', 'indie').get('name', 'artella')
+    if osplatform.is_windows():
+        artella_folder = os.path.dirname(get_artella_data_folder())
+        return os.path.join(artella_folder, artella_app_name)
+    elif osplatform.is_mac():
+        artella_folder = os.path.dirname(get_artella_data_folder())
+        return os.path.join(artella_folder, artella_app_name)
+    else:
+        qtutils.show_warning(
+            None,
+            'Platform not supported',
+            'Current platform is not supported by Artella App: {}'.format(osplatform.get_sys_platform())
+        )
+        return ''
 
 
 def get_artella_program_folder():
@@ -220,20 +230,17 @@ def launch_artella_app():
     Executes Artella App
     """
 
-    # TODO: This should not work in MAC, find a cross-platform way of doing this
-
-    if os.name == 'mac':
-        LOGGER.info('Launch Artella App: does not supports MAC yet')
-        qtutils.show_info(
-            None,
-            'Not supported in MAC',
-            'Artella Pipeline do not support automatically Artella Launch for Mac. '
-            'Please close Maya, launch Artella manually, and start Maya again!')
+    if osplatform.is_mac():
         artella_app_file = get_artella_app() + '.bundle'
-    else:
-        #  Executing Artella executable directly does not work
-        # artella_app_file = get_artella_app() + '.exe'
+    elif osplatform.is_windows():
         artella_app_file = get_artella_launch_shortcut()
+    else:
+        qtutils.show_warning(
+            None,
+            'Platform not supported',
+            'Current platform is not supported by Artella App: {}'.format(osplatform.get_sys_platform())
+        )
+        return
 
     artella_app_file = artella_app_file
     LOGGER.info('Artella App File: {0}'.format(artella_app_file))
@@ -250,8 +257,7 @@ def close_all_artella_app_processes():
     :return:
     """
 
-    artella_app_name = artella_lib.config.get('app', 'name')
-
+    artella_app_name = artella_lib.config.get('app', 'indie').get('name', 'artella')
     psutil_available = False
     try:
         import psutil
@@ -345,15 +351,17 @@ def load_artella_maya_plugin():
     :return: bool
     """
 
-    if tp.is_maya():
-        artella_plugin_name = artella_lib.config.get('app', 'plugin')
-        LOGGER.debug('Loading Artella Maya Plugin: {} ...'.format(artella_plugin_name))
-        artella_maya_plugin_folder = get_artella_dcc_plugin(dcc='maya')
-        artella_maya_plugin_file = os.path.join(artella_maya_plugin_folder, artella_plugin_name)
-        if os.path.isfile(artella_maya_plugin_file):
-            if not tp.Dcc.is_plugin_loaded(artella_plugin_name):
-                tp.Dcc.load_plugin(artella_maya_plugin_file)
-                return True
+    if not tp.is_maya():
+        return False
+
+    artella_plugin_name = artella_lib.config.get('app', 'indie').get('plugin', '')
+    LOGGER.debug('Loading Artella Maya Plugin: {} ...'.format(artella_plugin_name))
+    artella_maya_plugin_folder = get_artella_dcc_plugin(dcc='maya')
+    artella_maya_plugin_file = os.path.join(artella_maya_plugin_folder, artella_plugin_name)
+    if os.path.isfile(artella_maya_plugin_file):
+        if not tp.Dcc.is_plugin_loaded(artella_plugin_name):
+            tp.Dcc.load_plugin(artella_maya_plugin_file)
+            return True
 
     return False
 
@@ -400,7 +408,7 @@ def fix_path_by_project(project, path, fullpath=False):
     :return: str
     """
 
-    artella_root_prefix = artella_lib.config.get('app', 'root_prefix')
+    artella_root_prefix = artella_lib.config.get('app', 'indie').get('root_prefix', 'ART_LOCAL_ROOT')
     project_path = project.get_path()
     new_path = path.replace(project_path, '${}\\'.format(artella_root_prefix))
     if fullpath:
