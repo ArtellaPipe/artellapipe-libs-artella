@@ -10,6 +10,8 @@ import logging
 
 from tpDcc.libs.python import path as path_utils
 
+import artellapipe
+
 LOGGER = logging.getLogger('artellapipe-libs-artella')
 
 
@@ -55,7 +57,8 @@ class ArtellaAppMetaData(object):
 
         from artellapipe.libs import artella as artella_lib
 
-        artella_root_prefix = artella_lib.config.get('app', 'root_prefix')
+        project_type = artellapipe.project.get_project_type()
+        artella_root_prefix = artella_lib.config.get('app', project_type).get('root_prefix', 'ART_LOCAL_ROOT')
         os.environ[artella_root_prefix] = self._local_root
 
 
